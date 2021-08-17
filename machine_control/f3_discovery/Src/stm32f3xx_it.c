@@ -1,42 +1,9 @@
-/**
-  ******************************************************************************
-  * @file    UART/UART_TwoBoards_ComIT/Src/stm32f3xx_it.c 
-  * @author  MCD Application Team
-  * @brief   Main Interrupt Service Routines.
-  *          This file provides template for all exceptions handler and 
-  *          peripherals interrupt service routine.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
-
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_it.h"
-   
-/** @addtogroup STM32F3xx_HAL_Examples
-  * @{
-  */
 
-/** @addtogroup UART_TwoBoards_ComIT
-  * @{
-  */
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-/* UART handler declared in "main.c" file */
 extern UART_HandleTypeDef UartHandle;
+extern I2C_HandleTypeDef I2cHandle;
+
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -49,8 +16,7 @@ extern UART_HandleTypeDef UartHandle;
   * @param  None
   * @retval None
   */
-void NMI_Handler(void)
-{
+void NMI_Handler(void) {
 }
 
 /**
@@ -58,12 +24,10 @@ void NMI_Handler(void)
   * @param  None
   * @retval None
   */
-void HardFault_Handler(void)
-{
-  /* Go to infinite loop when Hard Fault exception occurs */
-  while (1)
-  {
-  }
+void HardFault_Handler(void) {
+    /* Go to infinite loop when Hard Fault exception occurs */
+    while (1) {
+    }
 }
 
 /**
@@ -71,12 +35,10 @@ void HardFault_Handler(void)
   * @param  None
   * @retval None
   */
-void MemManage_Handler(void)
-{
-  /* Go to infinite loop when Memory Manage exception occurs */
-  while (1)
-  {
-  }
+void MemManage_Handler(void) {
+    /* Go to infinite loop when Memory Manage exception occurs */
+    while (1) {
+    }
 }
 
 /**
@@ -84,12 +46,10 @@ void MemManage_Handler(void)
   * @param  None
   * @retval None
   */
-void BusFault_Handler(void)
-{
-  /* Go to infinite loop when Bus Fault exception occurs */
-  while (1)
-  {
-  }
+void BusFault_Handler(void) {
+    /* Go to infinite loop when Bus Fault exception occurs */
+    while (1) {
+    }
 }
 
 /**
@@ -97,12 +57,10 @@ void BusFault_Handler(void)
   * @param  None
   * @retval None
   */
-void UsageFault_Handler(void)
-{
-  /* Go to infinite loop when Usage Fault exception occurs */
-  while (1)
-  {
-  }
+void UsageFault_Handler(void) {
+    /* Go to infinite loop when Usage Fault exception occurs */
+    while (1) {
+    }
 }
 
 /**
@@ -110,8 +68,7 @@ void UsageFault_Handler(void)
   * @param  None
   * @retval None
   */
-void SVC_Handler(void)
-{
+void SVC_Handler(void) {
 }
 
 /**
@@ -119,8 +76,7 @@ void SVC_Handler(void)
   * @param  None
   * @retval None
   */
-void DebugMon_Handler(void)
-{
+void DebugMon_Handler(void) {
 }
 
 /**
@@ -128,8 +84,7 @@ void DebugMon_Handler(void)
   * @param  None
   * @retval None
   */
-void PendSV_Handler(void)
-{
+void PendSV_Handler(void) {
 }
 
 /**
@@ -137,9 +92,8 @@ void PendSV_Handler(void)
   * @param  None
   * @retval None
   */
-void SysTick_Handler(void)
-{
-  HAL_IncTick();
+void SysTick_Handler(void) {
+    HAL_IncTick();
 }
 
 /******************************************************************************/
@@ -149,15 +103,14 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f3xx.s).                                               */
 /******************************************************************************/
 /**
-  * @brief  This function handles UART interrupt request.  
+  * @brief  This function handles UART interrupt request.
   * @param  None
   * @retval None
-  * @Note   This function is redefined in "main.h" and related to DMA  
-  *         used for USART data transmission     
+  * @Note   This function is redefined in "main.h" and related to DMA
+  *         used for USART data transmission
   */
-void USARTx_IRQHandler(void)
-{
-  HAL_UART_IRQHandler(&UartHandle);
+void USARTx_IRQHandler(void) {
+    HAL_UART_IRQHandler(&UartHandle);
 }
 
 /**
@@ -165,9 +118,18 @@ void USARTx_IRQHandler(void)
   * @param  None
   * @retval None
   */
-void EXTI0_IRQHandler(void)
-{
-  HAL_GPIO_EXTI_IRQHandler(USER_BUTTON_PIN);
+void EXTI0_IRQHandler(void) {
+    HAL_GPIO_EXTI_IRQHandler(USER_BUTTON_PIN);
+}
+
+
+void I2Cx_EV_IRQHandler(void) {
+    HAL_I2C_EV_IRQHandler(&I2cHandle);
+}
+
+
+void I2Cx_ER_IRQHandler(void) {
+    HAL_I2C_ER_IRQHandler(&I2cHandle);
 }
 
 /**
@@ -182,7 +144,7 @@ void EXTI0_IRQHandler(void)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}

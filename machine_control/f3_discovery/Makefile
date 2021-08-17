@@ -46,6 +46,8 @@ objs = $(blddir)/main.o \
 	$(blddir)/stm32f3xx_hal_gpio.o \
 	$(blddir)/stm32f3xx_hal_dma.o \
 	$(blddir)/stm32f3xx_hal_rcc.o \
+	$(blddir)/stm32f3xx_hal_rcc_ex.o \
+	$(blddir)/stm32f3xx_hal_i2c.o \
 	$(blddir)/stm32f3xx_hal_cortex.o \
 	$(blddir)/stm32f3_discovery.o
 
