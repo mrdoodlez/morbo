@@ -72,6 +72,42 @@ int main(void) {
     /* Delay to avoid that possible signal rebound is taken as button release */
     HAL_Delay(50);
 
+    grove_begin(0x0F);    
+
+    while (1) {
+        for (int i = -10; i < 10; i++) {
+            grove_speed(MOTOR2, i * 10 );
+            HAL_Delay(1000);
+        }
+        
+        for (int i = 10; i > -10; i--) {
+            grove_speed(MOTOR2, i * 10 );
+            HAL_Delay(1000);
+        }
+    }
+
+
+    do {
+        // Set speed of MOTOR1, Clockwise, speed: -100~100
+        grove_speed(MOTOR1, 50);
+
+        // Set speed of MOTOR2, Anticlockwise
+        grove_speed(MOTOR2, -70);
+        HAL_Delay(5000);
+
+        // Change speed and direction of MOTOR1
+        grove_speed(MOTOR1, -100);
+
+        // Change speed and direction of MOTOR2
+        grove_speed(MOTOR2, 100);
+        HAL_Delay(5000);
+
+        // Stop MOTOR1 and MOTOR2
+        grove_stop(MOTOR1);
+        grove_stop(MOTOR2);
+        HAL_Delay(5000);
+    } while(1);
+
     do {
         if(HAL_I2C_Master_Transmit_IT(&I2cHandle, (uint16_t)I2C_ADDRESS,
                                       (uint8_t*)aTxBuffer, TXBUFFERSIZE)!= HAL_OK) {
@@ -381,6 +417,24 @@ void assert_failed(uint8_t* file, uint32_t line) {
     }
 }
 #endif
+
+int i2c_write(const unsigned char *buff, unsigned int len) {
+    if(HAL_I2C_Master_Transmit_IT(&I2cHandle, buff[0] << 1, buff+1, len-1)!= HAL_OK) {
+        return 0;
+    }
+    while (HAL_I2C_GetState(&I2cHandle) != HAL_I2C_STATE_READY) {      
+    }
+    
+    if(HAL_I2C_GetError(&I2cHandle) == HAL_I2C_ERROR_AF) {
+        return 0;
+    }
+
+    return len;
+}
+
+void delay(unsigned int ms) {
+    HAL_Delay(ms);
+}
 
 
 /**
