@@ -109,9 +109,6 @@ void SysTick_Handler(void) {
   * @Note   This function is redefined in "main.h" and related to DMA
   *         used for USART data transmission
   */
-void USARTx_IRQHandler(void) {
-    HAL_UART_IRQHandler(&UartHandle);
-}
 
 /**
   * @brief  This function handles external line 0 interrupt request.

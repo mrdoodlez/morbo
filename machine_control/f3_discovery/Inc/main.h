@@ -25,6 +25,7 @@
 #include "stm32f3xx_hal.h"
 #include "stm32f3_discovery.h"
 #include "grove_driver.h"
+#include "rc_device.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

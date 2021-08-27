@@ -161,6 +161,6 @@ static void i2c_msg_write(unsigned char byte) {
 static int i2c_msg_send() {
     int res = i2c_write(_state._msg_buff, _state._msg_pos);
     _state._msg_pos = 0;
-    delay(100);
+    delay(10);
     return res;
 }
