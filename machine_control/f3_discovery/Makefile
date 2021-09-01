@@ -12,12 +12,14 @@ incflags += -I$(cubedir)/Drivers/CMSIS/Include
 incflags += -I$(cubedir)/Drivers/BSP/STM32F3-Discovery
 incflags += -I../grove_motor_driver
 incflags += -I../remote_control/device
+incflags += -I../mc_control_grove
 
 VPATH   = ./Src
 VPATH  += $(cubedir)/Drivers/STM32F3xx_HAL_Driver/Src
 VPATH  += $(cubedir)/Drivers/BSP/STM32F3-Discovery
 VPATH  += ../grove_motor_driver
 VPATH  += ../remote_control/device
+VPATH  += ../mc_control_grove
 
 cflags = -mcpu=cortex-m4 \
 	-g3 -DCORE_CM4 \
@@ -25,7 +27,7 @@ cflags = -mcpu=cortex-m4 \
 	'-D__packed=__attribute__((__packed__))' \
 	-DUSE_HAL_DRIVER \
 	-DSTM32F303xC \
-	-O0 \
+	-O3 \
 	-ffunction-sections \
 	-Wall \
 	-MMD -MP \
@@ -55,7 +57,8 @@ objs = $(blddir)/main.o \
 	$(blddir)/stm32f3xx_hal_cortex.o \
 	$(blddir)/stm32f3_discovery.o \
 	$(blddir)/grove_driver.o \
-	$(blddir)/rc_device.o
+	$(blddir)/rc_device.o \
+	$(blddir)/mc_control.o
 
 all: $(blddir) $(target)
 

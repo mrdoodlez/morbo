@@ -21,8 +21,6 @@ static struct {
 // ****************************************************************************
 
 static void log_println(const char* msg);
-static unsigned char map(unsigned char val, unsigned char val_min,
-        unsigned char val_max, unsigned char out_min, unsigned char out_max);
 static void i2c_msg_write(unsigned char byte);
 static int i2c_msg_send();
 
@@ -61,34 +59,16 @@ void grove_direction(unsigned char _direction) {
 // motor_id: MOTOR1, MOTOR2
 // _speed: -100~100, when _speed>0, dc motor runs clockwise; when _speed<0,
 // dc motor runs anticlockwise
-void grove_speed(unsigned char motor_id, int _speed) {
-    if (motor_id < MOTOR1 || motor_id > MOTOR2) {
-        log_println("Motor id error! Must be MOTOR1 or MOTOR2");
-        return;
+void grove_speed(unsigned char motor_id, unsigned char _speed) {
+    if (motor_id == MOTOR1) {
+        _state._M1_direction = (_speed < 0x80) ? 1 : -1;      
+        _state._speed1 = _speed << 1;
+    } else if (motor_id == MOTOR2) {
+        _state._M2_direction = (_speed < 0x80) ? 1 : -1;      
+        _state._speed2 = _speed << 1;
     }
 
-    if (motor_id == MOTOR1) {
-        if (_speed >= 0) {
-            _state._M1_direction = 1;
-            _speed = _speed > 100 ? 100 : _speed;
-            _state._speed1 = map(_speed, 0, 100, 0, 255);
-        } else if (_speed < 0) {
-            _state._M1_direction = -1;
-            _speed = _speed < -100 ? 100 : -(_speed);
-            _state._speed1 = map(_speed, 0, 100, 0, 255);
-        }
-    } else if (motor_id == MOTOR2) {
-        if (_speed >= 0) {
-            _state._M2_direction = 1;
-            _speed = _speed > 100 ? 100 : _speed;
-            _state._speed2 = map(_speed, 0, 100, 0, 255);
-        } else if (_speed < 0) {
-            _state._M2_direction = -1;
-            _speed = _speed < -100 ? 100 : -(_speed);
-            _state._speed2 = map(_speed, 0, 100, 0, 255);
-        }
-    }
-    // Set the direction
+    // Set the direction    
     if (_state._M1_direction == 1 && _state._M2_direction == 1) {
         grove_direction(BothClockWise);
     }
@@ -101,6 +81,7 @@ void grove_speed(unsigned char motor_id, int _speed) {
     if (_state._M1_direction == -1 && _state._M2_direction == -1) {
         grove_direction(BothAntiClockWise);
     }
+
     // send command
     i2c_msg_write(_state._i2c_add); // begin transmission
     i2c_msg_write(MotorSpeedSet);   // set pwm header
@@ -138,20 +119,6 @@ void grove_stop(unsigned char motor_id) {
 // ****************************************************************************
 
 static void log_println(const char* msg) {
-}
-
-static unsigned char map(unsigned char val, unsigned char val_min,
-        unsigned char val_max, unsigned char out_min, unsigned char out_max) {
-    unsigned int val_dl = val - val_min;
-    unsigned int val_dx = val_max - val_min;
-    unsigned int val_dy = out_max - out_min;
-
-    val_dl <<= 8;
-    val_dl /= val_dx;
-    val_dl *= val_dy;
-    val_dl >>= 8;
-
-    return out_min + val_dl;
 }
 
 static void i2c_msg_write(unsigned char byte) {

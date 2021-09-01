@@ -1,16 +1,12 @@
 #include "rc_device.h"
+#include "mc_control.h"
 
 #define RC_SYNC_1   'm'
 #define RC_SYNC_2   'b'
 
 #define RC_CS_LEN   2
 
-
-typedef struct {
-    uint16_t seq_num;
-    uint8_t  code;
-    uint8_t  payload_len;
-} rcdev_common_header_t;
+extern void led_toggle();
 
 typedef enum {
     RCDEV_PROTO_STATE_OUT_OF_SYNC,
@@ -30,11 +26,6 @@ static struct {
     .pos = 0,
     .pstate = RCDEV_PROTO_STATE_OUT_OF_SYNC
 };
-
-
-static void _process(rcdev_common_header_t* hdr, uint8_t *payload)  {
-    _state.pos = 0;
-}
 
 void rcdev_on_new_data(uint8_t data) {
     _state.dbg_buff[_state.dbg_pos++] = data;
@@ -58,7 +49,7 @@ void rcdev_on_new_data(uint8_t data) {
             _state.buff[_state.pos++] = data;
             if (_state.pos == (sizeof(rcdev_common_header_t)
                     + ((rcdev_common_header_t*)(_state.buff))->payload_len)) {
-                _state.pstate = RCDEV_PROTO_STATE_FETCH_PAYLOAD;
+                _state.pstate = RCDEV_PROTO_STATE_FETCH_CS;
             }
             break;
         case RCDEV_PROTO_STATE_FETCH_CS:
@@ -66,8 +57,8 @@ void rcdev_on_new_data(uint8_t data) {
             if (_state.pos == (sizeof(rcdev_common_header_t)
                     + ((rcdev_common_header_t*)(_state.buff))->payload_len)
                     + RC_CS_LEN) {
-                _process(_state.buff,
-                        _state.buff + sizeof(rcdev_common_header_t));
+                led_toggle();
+                mc_push((rcdev_common_header_t*)(_state.buff));
                 _state.pos = 0;
                 _state.pstate = RCDEV_PROTO_STATE_OUT_OF_SYNC;
             }

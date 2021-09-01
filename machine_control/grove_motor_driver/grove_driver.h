@@ -39,7 +39,7 @@ int grove_begin(unsigned char i2c_add);
 // motor_id: MOTOR1, MOTOR2
 // _speed: -100~100, when _speed>0, dc motor runs clockwise;
 // when _speed<0, dc motor runs anticlockwise
-void grove_speed(unsigned char motor_id, int _speed);
+void grove_speed(unsigned char motor_id, unsigned char _speed);
 
 // Set the frequence of PWM(cycle length = 510, system clock = 16MHz)
 // F_3921Hz is default

@@ -35,10 +35,12 @@ CODE_PING   = 2
 CODE_STOP   = 3
 CODE_SPEEDS = 4
 
-def make_command(cmd):
+def make_command(cmd, arg1 = 0, arg2 = 0):
     cmd_buff = b'mb'
     if cmd == CODE_PING:
-        cmd_buff += struct.pack("<hbb", seq_num, cmd, 0)
+        cmd_buff += struct.pack("<HBB",   seq_num, cmd, 0)
+    elif cmd == CODE_SPEEDS:
+        cmd_buff += struct.pack("<HBBBB", seq_num, cmd, 2, arg1, arg2)
     cmd_buff += b'\x00\x00'
     print(cmd_buff)
     return(cmd_buff)
@@ -66,7 +68,20 @@ print("scan done")
 if connection and connection.connected:
     print("connected")
     grove = connection[GroveService]
-    grove[0] = make_command(CODE_PING)
+    stop = False
+    while not stop:
+        cmd = input("> ")
+        if cmd == "stop":            
+            stop = True
+        else:
+            cmd = cmd.split()
+            if cmd[0] == "s":
+                speed_l = int(cmd[1])
+                speed_r = int(cmd[2])
+                grove[0] = make_command(CODE_SPEEDS, speed_l, speed_r)
+
+
+    grove[0] = make_command(CODE_SPEEDS, 0, 0)
 
 connection.disconnect()
 

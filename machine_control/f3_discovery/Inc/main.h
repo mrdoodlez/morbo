@@ -26,6 +26,7 @@
 #include "stm32f3_discovery.h"
 #include "grove_driver.h"
 #include "rc_device.h"
+#include "mc_control.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

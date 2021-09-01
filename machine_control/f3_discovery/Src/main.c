@@ -71,58 +71,16 @@ int main(void) {
         Error_Handler();
     }
 
-    while(1) {
-        HAL_Delay(500);
-    }
-
-    grove_begin(0x0F);    
-    
-    grove_speed(MOTOR1, -100 );    
-    grove_speed(MOTOR2,  100 );
+    mc_task_run();
 
     while(1);
 
-    for (int i = 0; i > -10; i--) {
-        grove_speed(MOTOR2, i * 10 );
-        grove_speed(MOTOR1, i * -10 );
-        HAL_Delay(1000);
-    }
 
-    while (1) {
-        for (int i = -10; i < 10; i++) {
-            grove_speed(MOTOR2, i * 10 );
-            grove_speed(MOTOR1, i * -10 );
-            HAL_Delay(1000);
-        }
-        
-        for (int i = 10; i > -10; i--) {
-            grove_speed(MOTOR2, i * 10 );
-            grove_speed(MOTOR1, i * -10 );
-            HAL_Delay(1000);
-        }
-    }
-
-
-    do {
-        // Set speed of MOTOR1, Clockwise, speed: -100~100
-        grove_speed(MOTOR1, 50);
-
-        // Set speed of MOTOR2, Anticlockwise
-        grove_speed(MOTOR2, -70);
-        HAL_Delay(5000);
-
-        // Change speed and direction of MOTOR1
-        grove_speed(MOTOR1, -100);
-
-        // Change speed and direction of MOTOR2
-        grove_speed(MOTOR2, 100);
-        HAL_Delay(5000);
-
-        // Stop MOTOR1 and MOTOR2
-        grove_stop(MOTOR1);
-        grove_stop(MOTOR2);
-        HAL_Delay(5000);
-    } while(1);
+    
+    /*
+    grove_speed(MOTOR1, 0xff );    
+    grove_speed(MOTOR2, 0xff );
+    */
 
     return 0;
 }
@@ -179,14 +137,17 @@ void SystemClock_Config(void) {
   * @retval None
   */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle) {
+    //rcdev_on_new_data(rx);
 }
 
 
 void USART2_IRQHandler(void) {
+    //HAL_UART_IRQHandler(&UartHandle);
+
     if(USART2->ISR & USART_ISR_RXNE) {
         uint8_t rx = (USART2->RDR); // Receive data, clear flag     
         rcdev_on_new_data(rx);
-    }
+    }    
 }
 
 
@@ -263,5 +224,9 @@ int i2c_write(const unsigned char *buff, unsigned int len) {
 
 void delay(unsigned int ms) {
     HAL_Delay(ms);
+}
+
+void led_toggle(unsigned int ms) {
+    BSP_LED_Toggle(LED6);
 }
 
