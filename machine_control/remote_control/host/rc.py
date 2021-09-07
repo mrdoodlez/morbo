@@ -68,18 +68,29 @@ print("scan done")
 if connection and connection.connected:
     print("connected")
     grove = connection[GroveService]
-    stop = False
-    while not stop:
-        cmd = input("> ")
-        if cmd == "stop":            
-            stop = True
-        else:
-            cmd = cmd.split()
-            if cmd[0] == "s":
-                speed_l = int(cmd[1])
-                speed_r = int(cmd[2])
-                grove[0] = make_command(CODE_SPEEDS, speed_l, speed_r)
 
+    while True:
+        cmd = input("> ")
+        if cmd == "":
+            grove[0] = make_command(CODE_PING)
+        elif cmd == "f":
+            grove[0] = make_command(CODE_SPEEDS, 127, 127)
+        elif cmd == "b":
+            grove[0] = make_command(CODE_SPEEDS, 255, 255)
+        elif cmd == "l":
+            grove[0] = make_command(CODE_SPEEDS, 127, 255)
+        elif cmd == "r":
+            grove[0] = make_command(CODE_SPEEDS, 255, 127)
+
+
+
+
+
+
+        elif cmd == "s":
+            grove[0] = make_command(CODE_SPEEDS, 0, 0)
+        elif cmd == "q":
+            break
 
     grove[0] = make_command(CODE_SPEEDS, 0, 0)
 

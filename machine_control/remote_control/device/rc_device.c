@@ -7,6 +7,8 @@
 #define RC_CS_LEN   2
 
 extern void led_toggle();
+extern void led_on();
+extern void led_off();
 
 typedef enum {
     RCDEV_PROTO_STATE_OUT_OF_SYNC,
@@ -57,18 +59,22 @@ void rcdev_on_new_data(uint8_t data) {
             if (_state.pos == (sizeof(rcdev_common_header_t)
                     + ((rcdev_common_header_t*)(_state.buff))->payload_len)
                     + RC_CS_LEN) {
-                led_toggle();
                 mc_push((rcdev_common_header_t*)(_state.buff));
-                _state.pos = 0;
-                _state.pstate = RCDEV_PROTO_STATE_OUT_OF_SYNC;
+                led_off();
+                rcdev_proto_reset();
             }
             break;
         case RCDEV_PROTO_STATE_OUT_OF_SYNC:
         default:
             if (data == RC_SYNC_1) {
+                led_on();
                 _state.pstate = RCDEV_PROTO_STATE_IN_SYNC;
             }
             break;
     }
 }
 
+void rcdev_proto_reset() {
+    _state.pos = 0;
+    _state.pstate = RCDEV_PROTO_STATE_OUT_OF_SYNC;
+}

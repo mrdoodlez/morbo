@@ -226,7 +226,18 @@ void delay(unsigned int ms) {
     HAL_Delay(ms);
 }
 
-void led_toggle(unsigned int ms) {
+void led_toggle() {
     BSP_LED_Toggle(LED6);
 }
 
+void led_on() {
+    BSP_LED_On(LED6);
+}
+
+void led_off() {
+    BSP_LED_Off(LED6);
+}
+
+uint32_t get_time() {
+    return HAL_GetTick();
+}

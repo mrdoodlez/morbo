@@ -10,5 +10,6 @@ typedef struct {
 } rcdev_common_header_t;
 
 void rcdev_on_new_data(uint8_t data);
+void rcdev_proto_reset();
 
 #endif //_RC_DEVICE_H_
