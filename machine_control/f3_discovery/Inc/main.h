@@ -24,7 +24,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f3xx_hal.h"
 #include "stm32f3_discovery.h"
-#include "grove_driver.h"
 #include "rc_device.h"
 #include "mc_control.h"
 
@@ -77,6 +76,25 @@
 #define I2Cx_EV_IRQHandler              I2C1_EV_IRQHandler
 #define I2Cx_ER_IRQHandler              I2C1_ER_IRQHandler
 
+/* Definition for TIMx clock resources */
+#define TIMx                           TIM3
+#define TIMx_CLK_ENABLE()              __HAL_RCC_TIM3_CLK_ENABLE()
+
+/* Definition for TIMx Channel Pins */
+#define TIMx_CHANNEL_GPIO_PORT()       __HAL_RCC_GPIOC_CLK_ENABLE()
+#define TIMx_GPIO_PORT_CHANNEL1        GPIOC
+#define TIMx_GPIO_PORT_CHANNEL2        GPIOC
+#define TIMx_GPIO_PORT_CHANNEL3        GPIOC
+#define TIMx_GPIO_PORT_CHANNEL4        GPIOC
+#define TIMx_GPIO_PIN_CHANNEL1         GPIO_PIN_6
+#define TIMx_GPIO_PIN_CHANNEL2         GPIO_PIN_7
+#define TIMx_GPIO_PIN_CHANNEL3         GPIO_PIN_8
+#define TIMx_GPIO_PIN_CHANNEL4         GPIO_PIN_9
+#define TIMx_GPIO_AF_CHANNEL1          GPIO_AF2_TIM3
+#define TIMx_GPIO_AF_CHANNEL2          GPIO_AF2_TIM3
+#define TIMx_GPIO_AF_CHANNEL3          GPIO_AF2_TIM3
+#define TIMx_GPIO_AF_CHANNEL4          GPIO_AF2_TIM3
+
 /* Size of Trasmission buffer */
 #define TXBUFFERSIZE                      (COUNTOF(aTxBuffer) - 1)
 /* Size of Reception buffer */
@@ -85,6 +103,13 @@
 /* Exported macro ------------------------------------------------------------*/
 #define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
 /* Exported functions ------------------------------------------------------- */
+
+#define  PERIOD_VALUE       (uint32_t)(1330 - 1)  /* Period Value  */
+
+extern TIM_HandleTypeDef  TimHandle;
+extern TIM_OC_InitTypeDef sConfig;
+
+void Error_Handler(void);
 
 #endif /* __MAIN_H */
 

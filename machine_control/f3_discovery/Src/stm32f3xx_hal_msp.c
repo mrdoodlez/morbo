@@ -160,7 +160,39 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef *hi2c) {
     HAL_NVIC_DisableIRQ(I2Cx_EV_IRQn);
 }
 
+void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim) {
+    GPIO_InitTypeDef   GPIO_InitStruct;
+    /*##-1- Enable peripherals and GPIO Clocks #################################*/
+    /* TIMx Peripheral clock enable */
+    TIMx_CLK_ENABLE();
 
+    /* Enable all GPIO Channels Clock requested */
+    TIMx_CHANNEL_GPIO_PORT();
+
+    /* Configure PC.06 (TIM3_Channel1), PC.07 (TIM3_Channel2), PC.08 (TIM3_Channel3),
+     *      PC.09 (TIM3_Channel4) in output, push-pull, alternate function mode
+     *        */
+    /* Common configuration for all channels */
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+
+    GPIO_InitStruct.Alternate = TIMx_GPIO_AF_CHANNEL1;
+    GPIO_InitStruct.Pin = TIMx_GPIO_PIN_CHANNEL1;
+    HAL_GPIO_Init(TIMx_GPIO_PORT_CHANNEL1, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Alternate = TIMx_GPIO_AF_CHANNEL2;
+    GPIO_InitStruct.Pin = TIMx_GPIO_PIN_CHANNEL2;
+    HAL_GPIO_Init(TIMx_GPIO_PORT_CHANNEL2, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Alternate = TIMx_GPIO_AF_CHANNEL3;
+    GPIO_InitStruct.Pin = TIMx_GPIO_PIN_CHANNEL3;
+    HAL_GPIO_Init(TIMx_GPIO_PORT_CHANNEL3, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Alternate = TIMx_GPIO_AF_CHANNEL4;
+    GPIO_InitStruct.Pin = TIMx_GPIO_PIN_CHANNEL4;
+    HAL_GPIO_Init(TIMx_GPIO_PORT_CHANNEL4, &GPIO_InitStruct);
+}
 
 /**
   * @}

@@ -50,6 +50,8 @@ def make_command(cmd, arg1 = 0, arg2 = 0):
         cmd_buff += struct.pack("<HBB",   seq_num, cmd, 0)
     elif cmd == CODE_SPEEDS:
         cmd_buff += struct.pack("<HBBBB", seq_num, cmd, 2, arg1, arg2)
+    elif cmd == CODE_STOP:
+        cmd_buff += struct.pack("<HBB",   seq_num, cmd, 0)
     cmd_buff += b'\x00\x00'
     #print(cmd_buff)
     return(cmd_buff)
@@ -67,6 +69,8 @@ class rc_ui(QWidget):
         self.lastcmd = 0
         self.running = False
 
+        self.speed_scale = 0.8
+
         self.load_ui()
         self.setWindowTitle("MORBO RC")
 
@@ -74,7 +78,7 @@ class rc_ui(QWidget):
         self.ui.dial.sliderReleased.connect(self.dial_released)
 
         self.timer = QTimer()
-        self.timer.setInterval(500)
+        self.timer.setInterval(200)
         self.timer.timeout.connect(self.recurring_timer)
         self.timer.start()
 
@@ -165,6 +169,9 @@ class rc_ui(QWidget):
         l = l0 + (l1 - l0) * scale
         r = r0 + (r1 - r0) * scale
 
+        l *= self.speed_scale
+        r *= self.speed_scale
+
         l *= 127
         r *= 127
 
@@ -180,7 +187,7 @@ class rc_ui(QWidget):
 
     def stop(self):
         self.print("> stop")
-        self.grove[0] = make_command(CODE_SPEEDS, 0, 0)
+        self.grove[0] = make_command(CODE_STOP)
         self.lastcmd = time.time()
 
     def ping(self):
