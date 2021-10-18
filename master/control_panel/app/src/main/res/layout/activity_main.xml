@@ -6,6 +6,7 @@
     android:orientation="vertical">
 
     <Button
+        android:id="@+id/ff_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="FF"/>
@@ -16,22 +17,32 @@
         android:orientation="horizontal">
 
         <Button
+            android:id="@+id/fl_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="FL"/>
 
         <Button
+            android:id="@+id/fr_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="FR"/>
 
     </LinearLayout>
 
-
     <Button
+        android:id="@+id/fb_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="FB"/>
 
+    <TextView
+        android:id="@+id/console"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left"
+        android:lines="18"
+        android:scrollbars="vertical"
+        android:text="> "></TextView>>
 
 </LinearLayout>
