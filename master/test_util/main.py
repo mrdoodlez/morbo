@@ -3,36 +3,12 @@ import sys
 import os
 import time
 import struct
-
-from adafruit_ble import BLERadio
-from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
-from adafruit_ble.services import Service
-from adafruit_ble.uuid import VendorUUID
-from adafruit_ble.characteristics import Characteristic
+import serial
 
 from PySide2.QtWidgets import QApplication, QWidget
 from PySide2.QtCore import *
 from PySide2.QtUiTools import QUiLoader
 from PySide2 import QtGui
-
-class GroveService(Service):
-    uuid = VendorUUID("0000ffe0-0000-1000-8000-00805f9b34fb")
-
-    _control = Characteristic(
-        uuid=VendorUUID("0000ffe1-0000-1000-8000-00805f9b34fb"), max_length=20
-    )
-
-    def __init__(self, service=None):
-        super().__init__(service=service)
-
-    def __setitem__(self, index, value):
-        self._control = value
-    
-    def __getitem__(self, index):
-        return self._control
-
-    def __len__(self):
-        return 1
 
 seq_num = 0
 
@@ -82,30 +58,8 @@ class rc_ui(QWidget):
         self.timer.timeout.connect(self.recurring_timer)
         self.timer.start()
 
-        self.radio = BLERadio()
+        self.ser = serial.Serial("/dev/serial0", 9600)
 
-        print("scanning....")
-
-        self.connection = None
-        self.services = []
-
-        for entry in self.radio.start_scan(ProvideServicesAdvertisement, timeout=60, minimum_rssi=-80):
-            addr = entry.address
-            name = entry.complete_name
-            if name == "HMSoft":        
-                print("discovered:", name, "@", addr)
-                if GroveService in entry.services:
-                    print("Grove service found!")
-                    self.connection = self.radio.connect(entry)
-                    break
-
-        self.radio.stop_scan()
-        print("scan done")
-
-        if self.connection and self.connection.connected:
-            print("connected")
-            self.grove = self.connection[GroveService]
-        
         self.show()
 
     def recurring_timer(self):
@@ -182,17 +136,17 @@ class rc_ui(QWidget):
         r = int(r)
 
         self.print("> speeds: {:02x}; {:02x}".format(l, r))
-        self.grove[0] = make_command(CODE_SPEEDS, l, r)
+        self.ser.write(make_command(CODE_SPEEDS, l, r))
         self.lastcmd = time.time()
 
     def stop(self):
         self.print("> stop")
-        self.grove[0] = make_command(CODE_STOP)
+        self.ser.write(make_command(CODE_STOP))
         self.lastcmd = time.time()
 
     def ping(self):
         self.print("> ping")
-        self.grove[0] = make_command(CODE_PING)
+        self.ser.write(make_command(CODE_PING))
         self.lastcmd = time.time()
     
     def print(self, line):
