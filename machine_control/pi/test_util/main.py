@@ -58,7 +58,7 @@ class rc_ui(QWidget):
         self.timer.timeout.connect(self.recurring_timer)
         self.timer.start()
 
-        self.ser = serial.Serial("/dev/serial0", 9600)
+        self.ser = serial.Serial("/dev/ttyS0", 9600)
 
         self.show()
 
