@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "machine_control_node = machine_control.machine_control_node:main"
         ],
     },
 )
