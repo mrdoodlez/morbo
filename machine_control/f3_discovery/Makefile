@@ -3,7 +3,7 @@ blddir = build
 target = $(blddir)/mc.elf
 srcdir = Src
 
-cubedir ?= /home/stan/pkgs/STM32CubeF3
+cubedir ?= /mnt/projects/pkgs/STM32CubeF3
 
 incflags  = -I./Inc
 incflags += -I$(cubedir)/Drivers/STM32F3xx_HAL_Driver/Inc
