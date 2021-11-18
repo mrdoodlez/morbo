@@ -4,18 +4,18 @@
 #include <stdint.h>
 
 typedef enum {
-    BOARD_PWM_CH_0,
-    BOARD_PWM_CH_1
+	BOARD_PWM_CH_0,
+	BOARD_PWM_CH_1
 } board_pwm_channel_t;
 
 typedef enum {
-    BOARD_PWM_DIR_CW,
-    BOARD_PWM_DIR_CCW
+	BOARD_PWM_DIR_CW,
+	BOARD_PWM_DIR_CCW
 } board_pwm_direction_t;
 
 typedef enum {
-    BOARD_PWM_CH_DIS,
-    BOARD_PWM_CH_EN
+	BOARD_PWM_CH_DIS,
+	BOARD_PWM_CH_EN
 } board_pwm_enable_t;
 
 void board_delay(unsigned int ms);

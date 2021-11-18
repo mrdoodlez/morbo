@@ -10,13 +10,11 @@ incflags += -I$(cubedir)/Drivers/STM32F3xx_HAL_Driver/Inc
 incflags += -I$(cubedir)/Drivers/CMSIS/Device/ST/STM32F3xx/Include
 incflags += -I$(cubedir)/Drivers/CMSIS/Include
 incflags += -I$(cubedir)/Drivers/BSP/STM32F3-Discovery
-incflags += -I../remote_control/device
 incflags += -I../motor_control
 
 VPATH   = ./Src
 VPATH  += $(cubedir)/Drivers/STM32F3xx_HAL_Driver/Src
 VPATH  += $(cubedir)/Drivers/BSP/STM32F3-Discovery
-VPATH  += ../remote_control/device
 VPATH  += ../motor_control
 
 cflags = -mcpu=cortex-m4 \
@@ -51,11 +49,12 @@ objs = $(blddir)/main.o \
 	$(blddir)/stm32f3xx_hal_rcc.o \
 	$(blddir)/stm32f3xx_hal_rcc_ex.o \
 	$(blddir)/stm32f3xx_hal_i2c.o \
+	$(blddir)/stm32f3xx_hal_i2c_ex.o \
 	$(blddir)/stm32f3xx_hal_dma.o \
 	$(blddir)/stm32f3xx_hal_tim.o \
 	$(blddir)/stm32f3xx_hal_cortex.o \
 	$(blddir)/stm32f3_discovery.o \
-	$(blddir)/rc_device.o \
+	$(blddir)/proto.o \
 	$(blddir)/board_api.o \
 	$(blddir)/mc_control.o
 

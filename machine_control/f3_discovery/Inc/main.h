@@ -24,7 +24,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f3xx_hal.h"
 #include "stm32f3_discovery.h"
-#include "rc_device.h"
 #include "mc_control.h"
 
 /* Exported types ------------------------------------------------------------*/
@@ -94,11 +93,6 @@
 #define TIMx_GPIO_AF_CHANNEL2          GPIO_AF2_TIM3
 #define TIMx_GPIO_AF_CHANNEL3          GPIO_AF2_TIM3
 #define TIMx_GPIO_AF_CHANNEL4          GPIO_AF2_TIM3
-
-/* Size of Trasmission buffer */
-#define TXBUFFERSIZE                      (COUNTOF(aTxBuffer) - 1)
-/* Size of Reception buffer */
-#define RXBUFFERSIZE                      TXBUFFERSIZE
 
 /* Exported macro ------------------------------------------------------------*/
 #define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))

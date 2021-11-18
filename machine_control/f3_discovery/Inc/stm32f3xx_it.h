@@ -41,7 +41,6 @@ void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 void USARTx_IRQHandler(void);
-void EXTI0_IRQHandler(void);
 void I2Cx_EV_IRQHandler(void);
 void I2Cx_ER_IRQHandler(void);
 

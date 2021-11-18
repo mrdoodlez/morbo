@@ -25,9 +25,9 @@ void NMI_Handler(void) {
   * @retval None
   */
 void HardFault_Handler(void) {
-    /* Go to infinite loop when Hard Fault exception occurs */
-    while (1) {
-    }
+	/* Go to infinite loop when Hard Fault exception occurs */
+	while (1) {
+	}
 }
 
 /**
@@ -36,9 +36,9 @@ void HardFault_Handler(void) {
   * @retval None
   */
 void MemManage_Handler(void) {
-    /* Go to infinite loop when Memory Manage exception occurs */
-    while (1) {
-    }
+	/* Go to infinite loop when Memory Manage exception occurs */
+	while (1) {
+	}
 }
 
 /**
@@ -47,9 +47,9 @@ void MemManage_Handler(void) {
   * @retval None
   */
 void BusFault_Handler(void) {
-    /* Go to infinite loop when Bus Fault exception occurs */
-    while (1) {
-    }
+	/* Go to infinite loop when Bus Fault exception occurs */
+	while (1) {
+	}
 }
 
 /**
@@ -58,9 +58,9 @@ void BusFault_Handler(void) {
   * @retval None
   */
 void UsageFault_Handler(void) {
-    /* Go to infinite loop when Usage Fault exception occurs */
-    while (1) {
-    }
+	/* Go to infinite loop when Usage Fault exception occurs */
+	while (1) {
+	}
 }
 
 /**
@@ -93,7 +93,7 @@ void PendSV_Handler(void) {
   * @retval None
   */
 void SysTick_Handler(void) {
-    HAL_IncTick();
+	HAL_IncTick();
 }
 
 /******************************************************************************/
@@ -102,31 +102,17 @@ void SysTick_Handler(void) {
 /*  available peripheral interrupt handler's name please refer to the startup */
 /*  file (startup_stm32f3xx.s).                                               */
 /******************************************************************************/
-/**
-  * @brief  This function handles UART interrupt request.
-  * @param  None
-  * @retval None
-  * @Note   This function is redefined in "main.h" and related to DMA
-  *         used for USART data transmission
-  */
 
-/**
-  * @brief  This function handles external line 0 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void EXTI0_IRQHandler(void) {
-    HAL_GPIO_EXTI_IRQHandler(USER_BUTTON_PIN);
-}
-
+uint8_t gData = 0;
 
 void I2Cx_EV_IRQHandler(void) {
-    HAL_I2C_EV_IRQHandler(&I2cHandle);
+
+	HAL_I2C_EV_IRQHandler(&I2cHandle);
 }
 
 
 void I2Cx_ER_IRQHandler(void) {
-    HAL_I2C_ER_IRQHandler(&I2cHandle);
+	HAL_I2C_ER_IRQHandler(&I2cHandle);
 }
 
 /**

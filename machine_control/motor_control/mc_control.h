@@ -1,9 +1,10 @@
 #ifndef _MC_CONTROL_H_
 #define _MC_CONTROL_H_
 
-#include "rc_device.h"
+#include <stdint.h>
 
-void mc_task_run();
-void mc_push(rcdev_common_header_t* cmd);
+void mc_init();
+void mc_push_command(uint8_t* cmd_buff);
+void mc_work();
 
 #endif //_MC_CONTROL_H_
