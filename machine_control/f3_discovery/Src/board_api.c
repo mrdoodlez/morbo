@@ -13,6 +13,14 @@ void board_delay(unsigned int ms) {
 	HAL_Delay(ms);
 }
 
+void board_led_on() {
+	BSP_LED_On(LED6);
+}
+
+void board_led_off() {
+	BSP_LED_Off(LED6);
+}
+
 void board_led_toggle() {
 	BSP_LED_Toggle(LED6);
 }

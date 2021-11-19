@@ -1,9 +1,8 @@
 #include "main.h"
+#include "board_api.h"
 
 #define I2C_ADDRESS				0x7f
 #define I2C_TIMING				0x00201D2C
-
-#define I2C_TRANSMIT_BUFF_SIZE  32
 
 #define  PULSE1_VALUE			(uint32_t)(PERIOD_VALUE/2)        /* Capture Compare 1 Value  */
 #define  PULSE2_VALUE			(uint32_t)(PERIOD_VALUE*37.5/100) /* Capture Compare 2 Value  */
@@ -21,8 +20,8 @@ uint32_t uhPrescalerValue = 0;
 
 /*****************************************************************************/
 
-uint8_t rxBuff[I2C_TRANSMIT_BUFF_SIZE];
-uint8_t txBuff[I2C_TRANSMIT_BUFF_SIZE];
+uint8_t rxBuff[BOARD_TRANSFER_CHUNK];
+uint8_t txBuff[BOARD_TRANSFER_CHUNK];
 
 /*****************************************************************************/
 void SystemClock_Config(void);
@@ -87,9 +86,6 @@ int main(void) {
 
 	/*************************************************************************/
 
-	/*
-	BSP_LED_On(LED6);
-
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 
 	GPIO_InitStruct.Pin = (GPIO_PIN_8
@@ -103,8 +99,6 @@ int main(void) {
 
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	BSP_LED_Off(LED6);
-	*/
 	
 	/*************************************************************************/
 
@@ -112,13 +106,13 @@ int main(void) {
 
 	/*************************************************************************/
 
-	if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, I2C_TRANSMIT_BUFF_SIZE) != HAL_OK) {
+	if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
 		Error_Handler();
 	}
 
 	while(1) {
 		if (HAL_I2C_GetState(&I2cHandle) == HAL_I2C_STATE_READY) {
-			if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, I2C_TRANSMIT_BUFF_SIZE) != HAL_OK) {
+			if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
 				Error_Handler();
 			}
 			mc_push_command(rxBuff);
