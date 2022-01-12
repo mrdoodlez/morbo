@@ -2,7 +2,7 @@
 #include "board_api.h"
 #include <string.h>
 
-#define SCHEDULER_PERIOD_MS				300
+#define SCHEDULER_PERIOD_MS				100
 
 #define MC_NUM_TASKS					1
 
@@ -16,7 +16,7 @@
 #define MC_RC_CODE_STOP					3
 #define MC_RC_CODE_SPEEDS				4
 
-#define MOTOR_CONTROL_MOVE_PERIOD_MS	500
+#define MOTOR_CONTROL_MOVE_PERIOD_MS	175
 
 typedef struct {
 	uint8_t speed_l;
@@ -115,16 +115,15 @@ static void _motor_control_task(void *arg) {
 }
 
 static void _mc_work_speeds(mc_control_speeds_t* speeds) {
-	board_set_pwm_direction(BOARD_PWM_CH_0, speeds->speed_l < 0x80
+	board_set_pwm_direction(BOARD_PWM_CH_1, speeds->speed_l < 0x80
 							? BOARD_PWM_DIR_CW
 							: BOARD_PWM_DIR_CCW);
-	board_set_pwm_period(BOARD_PWM_CH_0, speeds->speed_l << 1);
+	board_set_pwm_period(BOARD_PWM_CH_1, speeds->speed_l << 1);
 
-	board_set_pwm_direction(BOARD_PWM_CH_1, speeds->speed_r < 0x80
+	board_set_pwm_direction(BOARD_PWM_CH_0, speeds->speed_r < 0x80
 							? BOARD_PWM_DIR_CW
 							: BOARD_PWM_DIR_CCW);
-	board_set_pwm_period(BOARD_PWM_CH_1, speeds->speed_r << 1);
-
+	board_set_pwm_period(BOARD_PWM_CH_0, speeds->speed_r << 1);
 }
 
 static void _mc_work_stop() {
