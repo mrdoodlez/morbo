@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<robot name="morbo" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!-- Robot Base -->
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <box size="0.3 0.15 0.12"/>
+            </geometry>
+            <material name="Cyan">
+                <color rgba="0 1.0 1.0 1.0"/>
+            </material>
+        </visual>
+    </link>
+
+    <!-- Robot Footprint -->
+    <link name="base_footprint"/>
+
+    <joint name="base_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="base_footprint"/>
+        <origin xyz="0.0 0.0 -0.06" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Robot Wheels -->
+    <link name="wheel_front_right">
+        <visual>
+            <geometry>
+                <cylinder radius="0.035" length="0.035"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="wheel_front_right_joint" type="continuous">
+        <origin xyz="0.115 0.095 -0.025" rpy="1.57 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="wheel_front_right"/>
+        <axis xyz="0.0 0.0 1.0"/>
+    </joint>
+
+    <link name="wheel_front_left">
+        <visual>
+            <geometry>
+                <cylinder radius="0.035" length="0.035"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="wheel_front_left_joint" type="continuous">
+        <origin xyz="0.115 -0.095 -0.025" rpy="1.57 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="wheel_front_left"/>
+        <axis xyz="0.0 0.0 1.0"/>
+    </joint>
+
+    <link name="wheel_back_right">
+        <visual>
+            <geometry>
+                <cylinder radius="0.035" length="0.035"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="wheel_back_right_joint" type="continuous">
+        <origin xyz="-0.115 0.095 -0.025" rpy="1.57 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="wheel_back_right"/>
+        <axis xyz="0.0 0.0 1.0"/>
+    </joint>
+
+    <link name="wheel_back_left">
+        <visual>
+            <geometry>
+                <cylinder radius="0.035" length="0.035"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="wheel_back_left_joint" type="continuous">
+        <origin xyz="-0.115 -0.095 -0.025" rpy="1.57 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="wheel_back_left"/>
+        <axis xyz="0.0 0.0 1.0"/>
+    </joint>
+
+
+</robot>
