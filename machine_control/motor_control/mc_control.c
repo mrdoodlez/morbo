@@ -22,6 +22,10 @@ static struct {
 	uint32_t new_cmd;
 	mc_control_task_desc_t tasks[MC_NUM_TASKS];
 
+	uint32_t motion_begin_ts;
+	uint8_t vl;
+	uint8_t vr;
+
 	mc_control_encoders_t encoders;
 } _machine_state;
 
@@ -90,27 +94,34 @@ mc_reply_desc_t* mc_get_reply() {
 	return &_transfer_state;
 }
 
+void mc_update_encoder(mc_encoder_ch_t ch) {
+	if (ch == MC_ENCODER_CH_L) {
+		if (_machine_state.vl < 0x80) {
+			_machine_state.encoders.pulses_l++;
+		} else {
+			_machine_state.encoders.pulses_l--;
+		}
+	} else {
+		if (_machine_state.vr < 0x80) {
+			_machine_state.encoders.pulses_r++;
+		} else {
+			_machine_state.encoders.pulses_r--;
+		}
+	}
+}
+
 /*****************************************************************************/
 
 static void _motor_control_task(void *arg) {
-	static struct {
-		uint32_t motion_begin_ts;
-		uint8_t vl;
-		uint8_t vr;
-	} task_state = {0, 0, 0};
-
 	uint32_t curr = board_get_time();
-
-	_machine_state.encoders.pulses_l++;
-	_machine_state.encoders.pulses_r--;
 
 	if (_machine_state.new_cmd) {
 		if (_machine_state.last_cmd.code == MC_RC_CODE_SET_PWM) {
 			mc_control_speeds_t *speeds = _machine_state.last_cmd.payload;
 			_mc_work_speeds(speeds);
-			task_state.vl = speeds->speed_l;
-			task_state.vr = speeds->speed_r;
-			task_state.motion_begin_ts = curr;
+			_machine_state.vl = speeds->speed_l;
+			_machine_state.vr = speeds->speed_r;
+			_machine_state.motion_begin_ts = curr;
 			_transfer_state.transfer_len = 0;
 		} else if (_machine_state.last_cmd.code == MC_RC_CODE_GET_ENCODERS) {
 			*(mc_control_encoders_t*)(encoders_reply.payload) = _machine_state.encoders;
@@ -118,26 +129,26 @@ static void _motor_control_task(void *arg) {
 			_transfer_state.transfer_buff = (uint8_t*)&encoders_reply;
 		}
 	} else {
-		if ((curr - task_state.motion_begin_ts) > MOTOR_CONTROL_MOVE_PERIOD_MS) {
-			if ((task_state.vl != 0) || (task_state.vr != 0)) {
+		if ((curr - _machine_state.motion_begin_ts) > MOTOR_CONTROL_MOVE_PERIOD_MS) {
+			if ((_machine_state.vl != 0) || (_machine_state.vr != 0)) {
 				_mc_work_stop();
-				task_state.vl = 0;
-				task_state.vr = 0;
+				_machine_state.vl = 0;
+				_machine_state.vr = 0;
 			}
 		}
 	}
 }
 
 static void _mc_work_speeds(mc_control_speeds_t* speeds) {
-	board_set_pwm_direction(BOARD_PWM_CH_1, speeds->speed_l < 0x80
+	board_set_pwm_direction(BOARD_PWM_CH_0, speeds->speed_l < 0x80
 							? BOARD_PWM_DIR_CCW
 							: BOARD_PWM_DIR_CW);
-	board_set_pwm_period(BOARD_PWM_CH_1, speeds->speed_l << 1);
+	board_set_pwm_period(BOARD_PWM_CH_0, speeds->speed_l << 1);
 
-	board_set_pwm_direction(BOARD_PWM_CH_0, speeds->speed_r < 0x80
+	board_set_pwm_direction(BOARD_PWM_CH_1, speeds->speed_r < 0x80
 							? BOARD_PWM_DIR_CCW
 							: BOARD_PWM_DIR_CW);
-	board_set_pwm_period(BOARD_PWM_CH_0, speeds->speed_r << 1);
+	board_set_pwm_period(BOARD_PWM_CH_1, speeds->speed_r << 1);
 }
 
 static void _mc_work_stop() {

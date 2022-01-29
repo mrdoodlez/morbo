@@ -100,6 +100,28 @@ int main(void) {
 
 	/*************************************************************************/
 
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+
+	GPIO_InitStruct.Pin = GPIO_PIN_9;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
+	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+	GPIO_InitStruct.Pin = GPIO_PIN_10;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+	/*************************************************************************/
+
 	mc_init();
 
 	/*************************************************************************/
@@ -228,6 +250,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle) {
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle) {
 	  BSP_LED_On(LED5); 
 	  UartError = SET;
+}
+
+/**
+ * @brief EXTI line detection callbacks
+ * @param GPIO_Pin: Specifies the pins connected EXTI line
+ * @retval None
+ */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == GPIO_PIN_9) {
+		mc_update_encoder(MC_ENCODER_CH_R);
+	} else {
+		mc_update_encoder(MC_ENCODER_CH_L);
+	}
 }
 
 /**
