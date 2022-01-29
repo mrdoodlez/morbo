@@ -22,6 +22,10 @@ uint32_t uhPrescalerValue = 0;
 
 uint8_t rxBuff[BOARD_TRANSFER_CHUNK];
 uint8_t txBuff[BOARD_TRANSFER_CHUNK];
+size_t txLen;
+
+uint32_t g_state = 0;
+uint32_t g_err = 0;
 
 /*****************************************************************************/
 void SystemClock_Config(void);
@@ -88,6 +92,7 @@ int main(void) {
 
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 
+
 	GPIO_InitStruct.Pin = (GPIO_PIN_8
 						   | GPIO_PIN_9
 						   | GPIO_PIN_14
@@ -98,6 +103,7 @@ int main(void) {
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 
 	
 	/*************************************************************************/
@@ -112,13 +118,25 @@ int main(void) {
 
 	while(1) {
 		if (HAL_I2C_GetState(&I2cHandle) == HAL_I2C_STATE_READY) {
+			mc_push_command(rxBuff);
+			g_state = 2;
+			mc_get_reply(txBuff, &txLen);
+			g_state = 3;
+
+			if (txLen != 0) {
+				if(HAL_I2C_Slave_Transmit_IT(&I2cHandle, (uint8_t*)txBuff, txLen) == HAL_OK) {
+					while (HAL_I2C_GetState(&I2cHandle) != HAL_I2C_STATE_READY);
+				}
+			}
+
 			if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
 				Error_Handler();
 			}
-			mc_push_command(rxBuff);
+
 		} else {
 			mc_work();
-			HAL_Delay(5);
+			g_state = 6;
+			HAL_Delay(3);
 		}
 	}
 

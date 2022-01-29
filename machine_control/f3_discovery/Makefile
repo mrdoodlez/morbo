@@ -54,7 +54,6 @@ objs = $(blddir)/main.o \
 	$(blddir)/stm32f3xx_hal_tim.o \
 	$(blddir)/stm32f3xx_hal_cortex.o \
 	$(blddir)/stm32f3_discovery.o \
-	$(blddir)/proto.o \
 	$(blddir)/board_api.o \
 	$(blddir)/mc_control.o
 
