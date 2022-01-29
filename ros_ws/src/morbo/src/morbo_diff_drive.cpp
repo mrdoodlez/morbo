@@ -1,25 +1,21 @@
 #include "rclcpp/rclcpp.hpp"
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include "geometry_msgs/msg/twist.hpp"
 #include <sstream>
 
 extern "C" {
 	#include <linux/i2c-dev.h>
-	#include <i2c/smbus.h>
 }
 
-#define TRANSFER_CMD_LEN	16
-#define TRANSFER_PL_LEN		(TRANSFER_CMD_LEN - 1)
-
+#define TRANSFER_CMD_LEN	8
 #define TRANSFER_ADDRESS	0x3f
 
 enum MorboCmds {
-	CODE_ACK    = 0,
-	CODE_NACK,
-	CODE_PING,
-	CODE_STOP,
-	CODE_PWM
+	CODE_SET_PWM,
+	CODE_GET_ENCODERS,
+	CODE_GET_IMU
 };
 
 class DiffDriveNode : public rclcpp::Node {
@@ -44,51 +40,109 @@ public:
 				std::bind(&DiffDriveNode::CmdVelCallback,
 				this,
 				std::placeholders::_1));
+
+		tmr = create_wall_timer(std::chrono::milliseconds(100),
+		   std::bind(&DiffDriveNode::TimerCallback, this));
 	}
 
 private:
 	void CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) const {
+		auto set_linear = msg->linear.x;
+		auto set_angular = msg->angular.z;
+
+		auto [curr_linear, curr_angular] = GetCurrVels();
+
+		std::pair<uint8_t, uint8_t> pwm {0, 0};
+
+		if (set_linear > 0)
+			pwm = {0x7f, 0x7f};
+		else if (set_linear < 0)
+			pwm = {0xff, 0xff};
+		else if (set_angular > 0)
+			pwm = {0x7f, 0xff};
+		else if (set_angular < 0)
+			pwm = {0xff, 0x7f};
+
+		//SendPwm(pwm);
+
 		std::ostringstream oss;
-		oss << "{" << msg->linear.x << " " << msg->linear.y
-			<< " " << msg->linear.z << "} ";
-		oss << "{" << msg->angular.x << " " << msg->angular.y
-			<< " " << msg->angular.z << "} ";
-		RCLCPP_INFO(get_logger(), oss.str());
+		oss << "set: {" << set_linear << " " << set_angular << "}";
+		//oss << " curr: {" << curr_linear << " " << curr_angular << "}";
 
-		auto pwm = VelsToPwm(msg->linear.x, msg->angular.z);
-
-		SendPwm(pwm);
+		//RCLCPP_INFO(get_logger(), oss.str());
 	}
 
-	std::pair<uint8_t, uint8_t> VelsToPwm(double x, double z) const
-	{
-		if (x > 0)
-			return std::pair<uint8_t, uint8_t>{0x7f, 0x7f};
-		if (x < 0)
-			return std::pair<uint8_t, uint8_t>{0xff, 0xff};
-		if (z > 0)
-			return std::pair<uint8_t, uint8_t>{0x7f, 0xff};
-		if (z < 0)
-			return std::pair<uint8_t, uint8_t>{0xff, 0x7f};
-		return std::pair<uint8_t, uint8_t>{0, 0};
+	std::pair<double, double> GetCurrVels() const {
+		/*
+		*/
+
+		std::vector<uint8_t> cmd(TRANSFER_CMD_LEN);
+
+		std::fill(cmd.begin(), cmd.end(), 0xff);
+		cmd[0] = CODE_GET_ENCODERS;
+
+		if (write(i2c, &cmd[0], cmd.size()) == cmd.size())
+		{
+			usleep(100);
+			if (read(i2c, &cmd[0], 8) != 8)
+				; //TODO: handle error
+		}
+
+
+		bool flag = false;
+
+		std::ostringstream oss;
+		for (int i = 0; i < 8; i++)
+			if (cmd[i] != 255) {
+				oss << "{" << i << " " << (int)(cmd[i]) << "} ";
+				flag = true;
+			}
+
+		if (flag)
+			RCLCPP_INFO(get_logger(), oss.str());
+
+
+		/*
+		std::vector<uint8_t> cmd(TRANSFER_PL_LEN - 2);
+		std::fill(cmd.begin(), cmd.end(), 0xff);
+
+		i2c_smbus_write_i2c_block_data(i2c, CODE_GET_ENCODERS, cmd.size(), &cmd[0]);
+		i2c_smbus_read_i2c_block_data(i2c, CODE_GET_ENCODERS, 4, &cmd[0]);
+
+		for (int i = 0; i < 4; i++)
+			std::cout << (int)(cmd[i]) << " ";
+		std::cout << std::endl;
+		*/
+
+		return {0, 0};
+	}
+
+	void TimerCallback() {
+		/*
+		RCLCPP_INFO(get_logger(), "timer");
+
+		*/
 	}
 
 	void SendPwm(const std::pair<uint8_t, uint8_t>& pwm) const
 	{
 		std::ostringstream oss;
-		oss << "{" << (int)(pwm.first) << " " << (int)(pwm.second) << "}";
+		oss << "send pwm: {" << (int)(pwm.first) << " " << (int)(pwm.second) << "}";
 		RCLCPP_INFO(get_logger(), oss.str());
 
-		std::vector<uint8_t> cmd(TRANSFER_PL_LEN);
+		std::vector<uint8_t> cmd(TRANSFER_CMD_LEN);
 
 		std::fill(cmd.begin(), cmd.end(), 0xff);
-		cmd[0] = pwm.first;
-		cmd[1] = pwm.second;
+		cmd[0] = CODE_SET_PWM;
+		cmd[1] = pwm.first;
+		cmd[2] = pwm.second;
 
-		i2c_smbus_write_i2c_block_data(i2c, CODE_PWM, cmd.size(), &cmd[0]);
+		if (write(i2c, &cmd[0], cmd.size()) != cmd.size())
+			; //TODO: handle error
 	}
 
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
+	rclcpp::TimerBase::SharedPtr tmr;
 	int i2c;
 };
 
