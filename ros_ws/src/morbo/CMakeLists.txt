@@ -28,7 +28,7 @@ install(TARGETS
 	DESTINATION lib/${PROJECT_NAME}
 )
 
-target_link_libraries(morbo_diff_drive -li2c)
+# target_link_libraries(morbo_diff_drive -li2c)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

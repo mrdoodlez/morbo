@@ -103,13 +103,9 @@ void SysTick_Handler(void) {
 /*  file (startup_stm32f3xx.s).                                               */
 /******************************************************************************/
 
-void I2Cx_EV_IRQHandler(void) {
-	HAL_I2C_EV_IRQHandler(&I2cHandle);
-}
 
-
-void I2Cx_ER_IRQHandler(void) {
-	HAL_I2C_ER_IRQHandler(&I2cHandle);
+void USARTx_IRQHandler(void) {
+	HAL_UART_IRQHandler(&UartHandle);
 }
 
 /**

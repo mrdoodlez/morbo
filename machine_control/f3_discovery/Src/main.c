@@ -1,31 +1,25 @@
 #include "main.h"
 #include "board_api.h"
-
-#define I2C_ADDRESS				0x7f
-#define I2C_TIMING				0x00201D2C
+#include "mc_proto.h"
 
 #define  PULSE1_VALUE			(uint32_t)(PERIOD_VALUE/2)        /* Capture Compare 1 Value  */
 #define  PULSE2_VALUE			(uint32_t)(PERIOD_VALUE*37.5/100) /* Capture Compare 2 Value  */
 #define  PULSE3_VALUE			(uint32_t)(PERIOD_VALUE/4)        /* Capture Compare 3 Value  */
 #define  PULSE4_VALUE			(uint32_t)(PERIOD_VALUE*12.5/100) /* Capture Compare 4 Value  */
 
-I2C_HandleTypeDef  I2cHandle;
-
 TIM_HandleTypeDef  TimHandle;
 TIM_OC_InitTypeDef sConfig;
-
+UART_HandleTypeDef UartHandle;
 GPIO_InitTypeDef  GPIO_InitStruct;
+
+__IO ITStatus UartReady = RESET;
+__IO ITStatus UartError = RESET;
 
 uint32_t uhPrescalerValue = 0;
 
 /*****************************************************************************/
 
 uint8_t rxBuff[BOARD_TRANSFER_CHUNK];
-uint8_t txBuff[BOARD_TRANSFER_CHUNK];
-size_t txLen;
-
-uint32_t g_state = 0;
-uint32_t g_err = 0;
 
 /*****************************************************************************/
 void SystemClock_Config(void);
@@ -44,22 +38,23 @@ int main(void) {
 
 	/*************************************************************************/
 
-	I2cHandle.Instance             = I2Cx;
+	UartHandle.Instance        = USARTx;
 
-	I2cHandle.Init.Timing          = I2C_TIMING;
-	I2cHandle.Init.OwnAddress1     = I2C_ADDRESS;
-	I2cHandle.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
-	I2cHandle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-	I2cHandle.Init.OwnAddress2     = 0xFF;
-	I2cHandle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-	I2cHandle.Init.NoStretchMode   = I2C_NOSTRETCH_ENABLE;
+	UartHandle.Init.BaudRate   = 115200;
+	UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
+	UartHandle.Init.StopBits   = UART_STOPBITS_1;
+	UartHandle.Init.Parity     = UART_PARITY_NONE;
+	UartHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
+	UartHandle.Init.Mode       = UART_MODE_TX_RX;
+	UartHandle.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
-	if(HAL_I2C_Init(&I2cHandle) != HAL_OK) {
-		/* Initialization Error */
+	if(HAL_UART_DeInit(&UartHandle) != HAL_OK) {
 		Error_Handler();
 	}
 
-	HAL_I2CEx_ConfigAnalogFilter(&I2cHandle,I2C_ANALOGFILTER_ENABLE);
+	if(HAL_UART_Init(&UartHandle) != HAL_OK) {
+		Error_Handler();
+	}
 
 	/*************************************************************************/
 
@@ -92,7 +87,6 @@ int main(void) {
 
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 
-
 	GPIO_InitStruct.Pin = (GPIO_PIN_8
 						   | GPIO_PIN_9
 						   | GPIO_PIN_14
@@ -104,38 +98,51 @@ int main(void) {
 
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-
-	
 	/*************************************************************************/
 
 	mc_init();
 
 	/*************************************************************************/
 
-	if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
+	if(HAL_UART_Receive_IT(&UartHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
 		Error_Handler();
 	}
 
 	while(1) {
-		if (HAL_I2C_GetState(&I2cHandle) == HAL_I2C_STATE_READY) {
-			mc_push_command(rxBuff);
-			g_state = 2;
-			mc_get_reply(txBuff, &txLen);
-			g_state = 3;
-
-			if (txLen != 0) {
-				if(HAL_I2C_Slave_Transmit_IT(&I2cHandle, (uint8_t*)txBuff, txLen) == HAL_OK) {
-					while (HAL_I2C_GetState(&I2cHandle) != HAL_I2C_STATE_READY);
-				}
-			}
-
-			if(HAL_I2C_Slave_Receive_IT(&I2cHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
+		if (UartError == SET) {
+			if(HAL_UART_DeInit(&UartHandle) != HAL_OK) {
 				Error_Handler();
 			}
 
+			if(HAL_UART_Init(&UartHandle) != HAL_OK) {
+				Error_Handler();
+			}
+
+			if(HAL_UART_Receive_IT(&UartHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
+				Error_Handler();
+			}
+
+			UartError = RESET;
+			BSP_LED_Off(LED5); 
+		} else if (UartReady == SET) {
+			UartReady = RESET;
+
+			mc_push_command(rxBuff);
+			mc_reply_desc_t *reply = mc_get_reply();
+			if (reply->transfer_len != 0) {
+				if(HAL_UART_Transmit_IT(&UartHandle, reply->transfer_buff,
+							reply->transfer_len)!= HAL_OK) {
+					Error_Handler();
+				}
+				while (UartReady != SET);
+				UartReady = RESET;
+			}
+
+			if(HAL_UART_Receive_IT(&UartHandle, rxBuff, BOARD_TRANSFER_CHUNK) != HAL_OK) {
+				Error_Handler();
+			}
 		} else {
 			mc_work();
-			g_state = 6;
 			HAL_Delay(3);
 		}
 	}
@@ -177,7 +184,8 @@ void SystemClock_Config(void) {
 
 	/* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
 	   clocks dividers */
-	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -186,6 +194,40 @@ void SystemClock_Config(void) {
 		/* Initialization Error */
 		while(1);
 	}
+}
+
+/**
+ * @brief  Tx Transfer completed callback
+ * @param  UartHandle: UART handle. 
+ * @note   This example shows a simple way to report end of IT Tx transfer, and 
+ *         you can add your own implementation. 
+ * @retval None
+ */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle) {
+	UartReady = SET;
+}
+
+/**
+ * @brief  Rx Transfer completed callback
+ * @param  UartHandle: UART handle
+ * @note   This example shows a simple way to report end of DMA Rx transfer, and 
+ *         you can add your own implementation.
+ * @retval None
+ */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle) {
+	  UartReady = SET;
+}
+
+/**
+ * @brief  UART error callbacks
+ * @param  UartHandle: UART handle
+ * @note   This example shows a simple way to report transfer error, and you can
+ *         add your own implementation.
+ * @retval None
+ */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle) {
+	  BSP_LED_On(LED5); 
+	  UartError = SET;
 }
 
 /**

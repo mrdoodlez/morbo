@@ -2,25 +2,21 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <termios.h>
 #include "geometry_msgs/msg/twist.hpp"
 #include <sstream>
 
 extern "C" {
-	#include <linux/i2c-dev.h>
+	//#include <linux/i2c-dev.h>
+	#include "../../../../machine_control/motor_control/mc_proto.h"
 }
 
-#define TRANSFER_CMD_LEN	8
-#define TRANSFER_ADDRESS	0x3f
-
-enum MorboCmds {
-	CODE_SET_PWM,
-	CODE_GET_ENCODERS,
-	CODE_GET_IMU
-};
+//#define TRANSFER_ADDRESS	0x3f
 
 class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive") {
+		/*
 		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
 			exit(-1);
@@ -29,6 +25,34 @@ public:
 		if (ioctl(i2c, I2C_SLAVE, TRANSFER_ADDRESS) < 0)
 		{
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to set i2c slave addr");
+			exit(-1);
+		}
+		*/
+
+		const char uartFileName[] = "/dev/ttyUSB0";
+
+		struct termios tio;
+
+		uart = open(uartFileName, O_RDWR | O_NOCTTY);
+		if (uart < 0) {
+			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open uart file");
+			exit(-1);
+		}
+
+		bzero(&tio, sizeof(tio));
+		tio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+		tio.c_iflag = IGNPAR;
+		tio.c_oflag = 0;
+
+		// set input mode (non-canonical, no echo,...)
+		tio.c_lflag = 0;
+
+		tio.c_cc[VTIME]    = 0;  // inter-character timer unused
+		tio.c_cc[VMIN]     = BOARD_TRANSFER_CHUNK;  // blocking read until 5 chars received
+
+		tcflush(uart, TCIOFLUSH);
+		if (tcsetattr(uart, TCSANOW, &tio)) {
+			RCLCPP_INFO(get_logger(), "[FATAL] Failed to set tcattr");
 			exit(-1);
 		}
 
@@ -63,56 +87,38 @@ private:
 		else if (set_angular < 0)
 			pwm = {0xff, 0x7f};
 
-		//SendPwm(pwm);
+		SendPwm(pwm);
 
 		std::ostringstream oss;
 		oss << "set: {" << set_linear << " " << set_angular << "}";
 		//oss << " curr: {" << curr_linear << " " << curr_angular << "}";
 
-		//RCLCPP_INFO(get_logger(), oss.str());
+		RCLCPP_INFO(get_logger(), oss.str());
 	}
 
 	std::pair<double, double> GetCurrVels() const {
-		/*
-		*/
+		mc_control_cmd_t cmd;
+		cmd.m = 'm';
+		cmd.b = 'b';
+		cmd.code = MC_RC_CODE_GET_ENCODERS;
 
-		std::vector<uint8_t> cmd(TRANSFER_CMD_LEN);
-
-		std::fill(cmd.begin(), cmd.end(), 0xff);
-		cmd[0] = CODE_GET_ENCODERS;
-
-		if (write(i2c, &cmd[0], cmd.size()) == cmd.size())
-		{
+		if (write(uart, &(cmd), sizeof(cmd)) == sizeof(cmd)) {
 			usleep(100);
-			if (read(i2c, &cmd[0], 8) != 8)
+			memset(&cmd, 0, sizeof(cmd));
+			if (read(uart, &cmd, sizeof(cmd)) == sizeof(cmd)) {
+				if ((cmd.m == 'm') && (cmd.b == 'b')) {
+					mc_control_encoders_t *encoders
+						= (mc_control_encoders_t*)(cmd.payload);
+
+					std::ostringstream oss;
+					oss << "curr: {" << encoders->pulses_l << " " << encoders->pulses_r << "}";
+
+					RCLCPP_INFO(get_logger(), oss.str());
+				}
+			} else
 				; //TODO: handle error
-		}
-
-
-		bool flag = false;
-
-		std::ostringstream oss;
-		for (int i = 0; i < 8; i++)
-			if (cmd[i] != 255) {
-				oss << "{" << i << " " << (int)(cmd[i]) << "} ";
-				flag = true;
-			}
-
-		if (flag)
-			RCLCPP_INFO(get_logger(), oss.str());
-
-
-		/*
-		std::vector<uint8_t> cmd(TRANSFER_PL_LEN - 2);
-		std::fill(cmd.begin(), cmd.end(), 0xff);
-
-		i2c_smbus_write_i2c_block_data(i2c, CODE_GET_ENCODERS, cmd.size(), &cmd[0]);
-		i2c_smbus_read_i2c_block_data(i2c, CODE_GET_ENCODERS, 4, &cmd[0]);
-
-		for (int i = 0; i < 4; i++)
-			std::cout << (int)(cmd[i]) << " ";
-		std::cout << std::endl;
-		*/
+		} else
+			; //TODO: handle error
 
 		return {0, 0};
 	}
@@ -124,26 +130,28 @@ private:
 		*/
 	}
 
-	void SendPwm(const std::pair<uint8_t, uint8_t>& pwm) const
-	{
+	void SendPwm(const std::pair<uint8_t, uint8_t>& pwm) const {
 		std::ostringstream oss;
 		oss << "send pwm: {" << (int)(pwm.first) << " " << (int)(pwm.second) << "}";
 		RCLCPP_INFO(get_logger(), oss.str());
 
-		std::vector<uint8_t> cmd(TRANSFER_CMD_LEN);
+		mc_control_cmd_t cmd;
+		cmd.m = 'm';
+		cmd.b = 'b';
+		cmd.code = MC_RC_CODE_SET_PWM;
 
-		std::fill(cmd.begin(), cmd.end(), 0xff);
-		cmd[0] = CODE_SET_PWM;
-		cmd[1] = pwm.first;
-		cmd[2] = pwm.second;
+		mc_control_speeds_t *speeds = (mc_control_speeds_t*)&(cmd.payload);
+		speeds->speed_l = pwm.first;
+		speeds->speed_r = pwm.second;
 
-		if (write(i2c, &cmd[0], cmd.size()) != cmd.size())
+		if (write(uart, &cmd, sizeof(cmd)) != sizeof(cmd))
 			; //TODO: handle error
 	}
 
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
 	rclcpp::TimerBase::SharedPtr tmr;
 	int i2c;
+	int uart;
 };
 
 int main(int argc, char **argv) {

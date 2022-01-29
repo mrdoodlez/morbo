@@ -4,9 +4,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+typedef struct {
+	size_t transfer_len;
+	uint8_t *transfer_buff;
+} mc_reply_desc_t;
+
 void mc_init();
 void mc_push_command(uint8_t* cmd_buff);
 void mc_work();
-void mc_get_reply(uint8_t* msg_buff, size_t* msg_len);
+mc_reply_desc_t* mc_get_reply();
 
 #endif //_MC_CONTROL_H_

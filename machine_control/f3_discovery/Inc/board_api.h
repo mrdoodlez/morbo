@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#define BOARD_TRANSFER_CHUNK	8
 
 typedef enum {
 	BOARD_PWM_CH_0,
