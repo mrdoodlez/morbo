@@ -27,7 +27,7 @@ void board_led_off();
 
 uint32_t board_get_time();
 
-void board_set_pwm_period    (board_pwm_channel_t ch, uint8_t period);
+void board_set_pwm_period    (board_pwm_channel_t ch, float ratio);
 void board_set_pwm_direction (board_pwm_channel_t ch, board_pwm_direction_t dir);
 void board_set_pwm_enable    (board_pwm_channel_t ch, board_pwm_enable_t en);
 

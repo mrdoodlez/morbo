@@ -15,8 +15,8 @@ typedef struct {
 
 //TODO: switch to signed ints!!!
 typedef struct {
-	uint8_t speed_l;
-	uint8_t speed_r;
+	float pwm_l;
+	float pwm_r;
 } __attribute__((packed)) mc_control_speeds_t;
 
 typedef struct {

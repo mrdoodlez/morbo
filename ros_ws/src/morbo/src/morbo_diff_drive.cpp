@@ -4,7 +4,10 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include "geometry_msgs/msg/twist.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "tf2/LinearMath/Quaternion.h"
 #include <sstream>
+#include <deque>
 
 extern "C" {
 	//#include <linux/i2c-dev.h>
@@ -15,7 +18,8 @@ extern "C" {
 
 class DiffDriveNode : public rclcpp::Node {
 public:
-	DiffDriveNode() : Node("morbo_diff_drive") {
+	DiffDriveNode() : Node("morbo_diff_drive")
+					, prevTs(0) {
 		/*
 		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
@@ -65,93 +69,207 @@ public:
 				this,
 				std::placeholders::_1));
 
-		tmr = create_wall_timer(std::chrono::milliseconds(100),
+		auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+		odomPublisher = create_publisher<nav_msgs::msg::Odometry>("odom", qos);
+
+		tmr = create_wall_timer(std::chrono::milliseconds(20),
 		   std::bind(&DiffDriveNode::TimerCallback, this));
 	}
 
 private:
-	void CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) const {
-		auto set_linear = msg->linear.x;
-		auto set_angular = msg->angular.z;
-
-		auto [curr_linear, curr_angular] = GetCurrVels();
-
-		std::pair<uint8_t, uint8_t> pwm {0, 0};
-
-		if (set_linear > 0)
-			pwm = {0x7f, 0x7f};
-		else if (set_linear < 0)
-			pwm = {0xff, 0xff};
-		else if (set_angular > 0)
-			pwm = {0x7f, 0xff};
-		else if (set_angular < 0)
-			pwm = {0xff, 0x7f};
-
-		SendPwm(pwm);
-
-		std::ostringstream oss;
-		oss << "set: {" << set_linear << " " << set_angular << "}";
-		//oss << " curr: {" << curr_linear << " " << curr_angular << "}";
-
-		RCLCPP_INFO(get_logger(), oss.str());
+	void CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
+		setLinear = msg->linear.x;
+		setAngular = msg->angular.z;
 	}
 
-	std::pair<double, double> GetCurrVels() const {
+	std::pair<double, double> GetCurrVels() {
 		mc_control_cmd_t cmd;
 		cmd.m = 'm';
 		cmd.b = 'b';
 		cmd.code = MC_RC_CODE_GET_ENCODERS;
 
+		std::pair<double, double> res(0, 0);
+
 		if (write(uart, &(cmd), sizeof(cmd)) == sizeof(cmd)) {
-			usleep(100);
 			memset(&cmd, 0, sizeof(cmd));
 			if (read(uart, &cmd, sizeof(cmd)) == sizeof(cmd)) {
 				if ((cmd.m == 'm') && (cmd.b == 'b')) {
 					mc_control_encoders_t *encoders
 						= (mc_control_encoders_t*)(cmd.payload);
 
-					std::ostringstream oss;
-					oss << "curr: {" << encoders->pulses_l << " " << encoders->pulses_r << "}";
+					uint64_t currTime =
+						std::chrono::duration_cast<std::chrono::microseconds>
+						(std::chrono::system_clock::now().time_since_epoch()).count();
 
-					RCLCPP_INFO(get_logger(), oss.str());
+					if (prevTs != 0) {
+						double dt = currTime - prevTs;
+						double linear_l = (encoders->pulses_l - prevEnc.pulses_l) * mpp / dt * 1e6;
+						double linear_r = (encoders->pulses_r - prevEnc.pulses_r) * mpp / dt * 1e6;
+
+						res.first = (linear_l + linear_r) / 2;
+						res.second = (linear_l - linear_r) / wheelSeparation;
+					}
+
+					prevTs = currTime;
+					prevEnc = *encoders;
+
 				}
 			} else
 				; //TODO: handle error
 		} else
 			; //TODO: handle error
 
-		return {0, 0};
+		return res;
 	}
 
 	void TimerCallback() {
-		/*
-		RCLCPP_INFO(get_logger(), "timer");
+		double currLinear = 0;
+		double currAngular = 0;
+		if ((setLinear == 0) && (setAngular == 0)) {
+			pwmLeft = pwmRight = 0;
+		} else {
+			auto vels = GetCurrVels();
 
-		*/
+			currLinear  = FilterLinear(vels.first);
+			currAngular = FilterAngular(vels.second);
+
+			auto eLinear = setLinear - currLinear;
+			auto eAngular = setAngular - currAngular;
+
+			pwmLeft  += pwmPidKL * eLinear - pwmPidKA * eAngular;
+			pwmRight += pwmPidKL * eLinear + pwmPidKA * eAngular;
+
+			if (pwmLeft >  1) pwmLeft  = 1;
+			if (pwmLeft < -1) pwmLeft = -1;
+
+			if (pwmRight >  1) pwmRight  = 1;
+			if (pwmRight < -1) pwmRight = -1;
+
+			/*
+			std::ostringstream oss;
+			oss << " err: {" << eLinear << " " << eAngular << "}";
+
+			RCLCPP_INFO(get_logger(), oss.str());
+			*/
+		}
+
+		auto vx = currLinear * cos (currAngular);
+		auto vy = currLinear * sin (currAngular);
+
+		double dt = 20e-3; //TODO: fix it!
+
+		x += vx * dt;
+		y += vy * dt;
+		th += currAngular * dt;
+
+		rcutils_time_point_value_t now;
+		rcutils_system_time_now(&now);
+
+		auto odom = std::make_unique<nav_msgs::msg::Odometry>();
+
+		odom->header.stamp.sec = RCL_NS_TO_S(now);
+		odom->header.stamp.nanosec = now - RCL_S_TO_NS(odom->header.stamp.sec);
+		odom->header.frame_id = "odom";
+
+		odom->pose.pose.position.x = x;
+		odom->pose.pose.position.y = y;
+		odom->pose.pose.position.z = 0.0;
+
+		tf2::Quaternion q;
+		q.setRPY(0, 0, th);
+
+		odom->pose.pose.orientation.x = q.x();
+		odom->pose.pose.orientation.y = q.y();
+		odom->pose.pose.orientation.z = q.z();
+		odom->pose.pose.orientation.w = q.w();
+
+		odom->twist.twist.linear.x = vx;
+		odom->twist.twist.linear.y = vy;
+		odom->twist.twist.angular.z = currAngular;
+
+		odomPublisher->publish(std::move(odom));
+
+		SendPwm( {pwmLeft, pwmRight} );
 	}
 
-	void SendPwm(const std::pair<uint8_t, uint8_t>& pwm) const {
-		std::ostringstream oss;
-		oss << "send pwm: {" << (int)(pwm.first) << " " << (int)(pwm.second) << "}";
-		RCLCPP_INFO(get_logger(), oss.str());
-
+	void SendPwm(const std::pair<float, float>& pwm) const {
 		mc_control_cmd_t cmd;
 		cmd.m = 'm';
 		cmd.b = 'b';
 		cmd.code = MC_RC_CODE_SET_PWM;
 
 		mc_control_speeds_t *speeds = (mc_control_speeds_t*)&(cmd.payload);
-		speeds->speed_l = pwm.first;
-		speeds->speed_r = pwm.second;
+		speeds->pwm_l = pwm.first;
+		speeds->pwm_r = pwm.second;
 
 		if (write(uart, &cmd, sizeof(cmd)) != sizeof(cmd))
 			; //TODO: handle error
 	}
 
+	double FilterLinear(double newSample) {
+		double res = newSample;
+
+		for (auto x : fLinear)
+			res += x;
+
+		res /= fLinear.size() + 1;
+
+		fLinear.push_back(newSample);
+
+		if (fLinear.size() > fLenLinear)
+			fLinear.pop_front();
+
+		return res;
+	}
+
+	double FilterAngular(double newSample) {
+		double res = newSample;
+
+		for (auto x : fAngular)
+			res += x;
+
+		res /= fAngular.size() + 1;
+
+		fAngular.push_back(newSample);
+
+		if (fAngular.size() > fLenAngular)
+			fAngular.pop_front();
+
+		return res;
+	}
+
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
+	rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPublisher;
 	rclcpp::TimerBase::SharedPtr tmr;
+
 	int i2c;
 	int uart;
+	
+	mc_control_encoders_t prevEnc;
+	uint64_t prevTs;
+
+	//std::queue<std::pair<>> encSamples;
+
+	float pwmLeft;
+	float pwmRight;
+
+	double setLinear;
+	double setAngular;
+
+	double x;
+	double y;
+	double th;
+
+	std::deque<double> fLinear;
+	std::deque<double> fAngular;
+
+	static constexpr double wheelSeparation = 0.02;
+	static constexpr double ppm = 1200;
+	static constexpr double mpp = 1.0 / ppm;
+	static constexpr double pwmPidKL = 0.1;
+	static constexpr double pwmPidKA = 1e-3;
+	static constexpr int fLenLinear = 8;
+	static constexpr int fLenAngular = 16;
 };
 
 int main(int argc, char **argv) {

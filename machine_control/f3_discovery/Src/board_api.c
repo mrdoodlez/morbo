@@ -29,10 +29,8 @@ uint32_t board_get_time() {
 	return HAL_GetTick();
 }
 
-void board_set_pwm_period (board_pwm_channel_t ch, uint8_t period) {
-	sConfig.Pulse = period;
-	sConfig.Pulse *= PERIOD_VALUE;
-	sConfig.Pulse >>= 8;
+void board_set_pwm_period (board_pwm_channel_t ch, float ratio) {
+	sConfig.Pulse = ratio * PERIOD_VALUE;
 
 	uint32_t channel = (ch == BOARD_PWM_CH_0) ? TIM_CHANNEL_3 : TIM_CHANNEL_4;
 
