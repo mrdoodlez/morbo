@@ -34,7 +34,7 @@
         </visual>
     </link>
 
-    <joint name="wheel_front_right_joint" type="continuous">
+    <joint name="wheel_front_right_joint" type="fixed">
         <origin xyz="0.115 0.095 -0.025" rpy="1.57 0.0 0.0"/>
         <parent link="base_link"/>
         <child link="wheel_front_right"/>
@@ -52,7 +52,7 @@
         </visual>
     </link>
 
-    <joint name="wheel_front_left_joint" type="continuous">
+    <joint name="wheel_front_left_joint" type="fixed">
         <origin xyz="0.115 -0.095 -0.025" rpy="1.57 0.0 0.0"/>
         <parent link="base_link"/>
         <child link="wheel_front_left"/>
@@ -70,7 +70,7 @@
         </visual>
     </link>
 
-    <joint name="wheel_back_right_joint" type="continuous">
+    <joint name="wheel_back_right_joint" type="fixed">
         <origin xyz="-0.115 0.095 -0.025" rpy="1.57 0.0 0.0"/>
         <parent link="base_link"/>
         <child link="wheel_back_right"/>
@@ -88,7 +88,7 @@
         </visual>
     </link>
 
-    <joint name="wheel_back_left_joint" type="continuous">
+    <joint name="wheel_back_left_joint" type="fixed">
         <origin xyz="-0.115 -0.095 -0.025" rpy="1.57 0.0 0.0"/>
         <parent link="base_link"/>
         <child link="wheel_back_left"/>

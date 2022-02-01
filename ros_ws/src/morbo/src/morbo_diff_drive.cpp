@@ -4,8 +4,10 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include "geometry_msgs/msg/twist.hpp"
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
+#include "tf2_ros/transform_broadcaster.h"
 #include <sstream>
 #include <deque>
 
@@ -71,6 +73,8 @@ public:
 
 		auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
 		odomPublisher = create_publisher<nav_msgs::msg::Odometry>("odom", qos);
+	
+		transformBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
 		tmr = create_wall_timer(std::chrono::milliseconds(20),
 		   std::bind(&DiffDriveNode::TimerCallback, this));
@@ -127,6 +131,8 @@ private:
 		double currAngular = 0;
 		if ((setLinear == 0) && (setAngular == 0)) {
 			pwmLeft = pwmRight = 0;
+			fLinear.clear();
+			fAngular.clear();
 		} else {
 			auto vels = GetCurrVels();
 
@@ -136,8 +142,8 @@ private:
 			auto eLinear = setLinear - currLinear;
 			auto eAngular = setAngular - currAngular;
 
-			pwmLeft  += pwmPidKL * eLinear - pwmPidKA * eAngular;
-			pwmRight += pwmPidKL * eLinear + pwmPidKA * eAngular;
+			pwmLeft  += pwmPidKL * eLinear + pwmPidKLA * eAngular;
+			pwmRight += pwmPidKL * eLinear + pwmPidKRA * eAngular;
 
 			if (pwmLeft >  1) pwmLeft  = 1;
 			if (pwmLeft < -1) pwmLeft = -1;
@@ -153,14 +159,15 @@ private:
 			*/
 		}
 
-		auto vx = currLinear * cos (currAngular);
-		auto vy = currLinear * sin (currAngular);
-
 		double dt = 20e-3; //TODO: fix it!
+
+		th += currAngular * dt;
+
+		auto vx = currLinear * cos (th);
+		auto vy = currLinear * sin (th);
 
 		x += vx * dt;
 		y += vy * dt;
-		th += currAngular * dt;
 
 		rcutils_time_point_value_t now;
 		rcutils_system_time_now(&now);
@@ -187,7 +194,21 @@ private:
 		odom->twist.twist.linear.y = vy;
 		odom->twist.twist.angular.z = currAngular;
 
-		odomPublisher->publish(std::move(odom));
+		auto odom_tf = std::make_unique<geometry_msgs::msg::TransformStamped>();
+		odom_tf->header.frame_id = "odom";
+		odom_tf->child_frame_id = "base_link";
+
+		odom_tf->header.stamp = odom->header.stamp;
+		odom_tf->transform.translation.x = x;
+		odom_tf->transform.translation.y = y;
+		odom_tf->transform.translation.z = 0.0;
+		odom_tf->transform.rotation.x = q.x();
+		odom_tf->transform.rotation.y = q.y();
+		odom_tf->transform.rotation.z = q.z();
+		odom_tf->transform.rotation.w = q.w();
+
+		transformBroadcaster->sendTransform(*odom_tf);
+		odomPublisher->publish(move(odom));
 
 		SendPwm( {pwmLeft, pwmRight} );
 	}
@@ -240,6 +261,7 @@ private:
 
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
 	rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPublisher;
+	std::shared_ptr<tf2_ros::TransformBroadcaster> transformBroadcaster;
 	rclcpp::TimerBase::SharedPtr tmr;
 
 	int i2c;
@@ -263,11 +285,12 @@ private:
 	std::deque<double> fLinear;
 	std::deque<double> fAngular;
 
-	static constexpr double wheelSeparation = 0.02;
+	static constexpr double wheelSeparation = 0.2;
 	static constexpr double ppm = 1200;
 	static constexpr double mpp = 1.0 / ppm;
 	static constexpr double pwmPidKL = 0.1;
-	static constexpr double pwmPidKA = 1e-3;
+	static constexpr double pwmPidKLA = -0.01;
+	static constexpr double pwmPidKRA = 0.1;
 	static constexpr int fLenLinear = 8;
 	static constexpr int fLenAngular = 16;
 };

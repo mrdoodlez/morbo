@@ -13,7 +13,6 @@ typedef struct {
 	uint8_t payload[BOARD_TRANSFER_CHUNK - 3];
 } __attribute__((packed)) mc_control_cmd_t;
 
-//TODO: switch to signed ints!!!
 typedef struct {
 	float pwm_l;
 	float pwm_r;
