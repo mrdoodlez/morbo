@@ -10,21 +10,19 @@ def generate_launch_description():
         executable = "morbo_diff_drive"
     )
 
-    '''    
     rplidar_node = Node(
         node_name='rplidar_composition',
         package='rplidar_ros',
         node_executable='rplidar_composition',
         output='screen',
         parameters=[{
-            'serial_port': '/dev/ttyUSB0',
+            'serial_port': '/dev/ttyUSB1',
             'serial_baudrate': 115200,
             'frame_id': 'laser',
             'inverted': False,
             'angle_compensate': True,
         }],
     )
-    '''
 
     pkg_share = launch_ros.substitutions.FindPackageShare(package='morbo_bringup').find('morbo_bringup')
     default_model_path = os.path.join(pkg_share, 'urdf/morbo.urdf')
@@ -46,7 +44,8 @@ def generate_launch_description():
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',
-        parameters=[os.path.join(pkg_share, 'config/ekf.yaml'), {'use_sim_time': LaunchConfiguration('use_sim_time')}]
+        parameters=[os.path.join(pkg_share, 'config/ekf.yaml'),
+            {'use_sim_time': LaunchConfiguration('use_sim_time')}]
     )
     rviz_node = launch_ros.actions.Node(
         package='rviz2',
@@ -68,7 +67,7 @@ def generate_launch_description():
         diff_drive_node,
         joint_state_publisher_node,
         robot_state_publisher_node,
-        rviz_node,
+        rplidar_node,
     ])
-    
-    #rplidar_node
+
+    #rviz_node,
