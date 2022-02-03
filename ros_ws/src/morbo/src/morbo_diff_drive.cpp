@@ -21,7 +21,8 @@ extern "C" {
 class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive")
-					, prevTs(0) {
+					, prevTs(0)
+                    , runMode(eRunMode_Calib) {
 		/*
 		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
@@ -100,7 +101,6 @@ private:
 				if ((cmd.m == 'm') && (cmd.b == 'b')) {
 					mc_control_encoders_t *encoders
 						= (mc_control_encoders_t*)(cmd.payload);
-
 					uint64_t currTime =
 						std::chrono::duration_cast<std::chrono::microseconds>
 						(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -112,6 +112,14 @@ private:
 
 						res.first = (linear_l + linear_r) / 2;
 						res.second = (linear_l - linear_r) / wheelSeparation;
+					}
+
+					if (runMode == DiffDriveNode::eRunMode_Calib) {
+						if (encoders->pulses_l != prevEnc.pulses_l) {
+							std::ostringstream oss;
+							oss << " enc: {" << encoders->pulses_l << " " << encoders->pulses_r << "}";
+							RCLCPP_INFO(get_logger(), oss.str());
+						}
 					}
 
 					prevTs = currTime;
@@ -133,6 +141,12 @@ private:
 			pwmLeft = pwmRight = 0;
 			fLinear.clear();
 			fAngular.clear();
+		} else if (runMode == DiffDriveNode::eRunMode_Calib) {
+			auto vels = GetCurrVels();
+			if (setLinear > 0)
+				pwmLeft = pwmRight = 1;
+			else if (setLinear < 0)
+				pwmLeft = pwmRight = -1;
 		} else {
 			auto vels = GetCurrVels();
 
@@ -293,6 +307,11 @@ private:
 	static constexpr double pwmPidKRA = 0.1;
 	static constexpr int fLenLinear = 8;
 	static constexpr int fLenAngular = 16;
+
+	enum RunMode {
+		eRunMode_Normal,
+		eRunMode_Calib,
+	} runMode;
 };
 
 int main(int argc, char **argv) {
