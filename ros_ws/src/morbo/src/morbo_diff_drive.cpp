@@ -22,7 +22,7 @@ class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive")
 					, prevTs(0)
-                    , runMode(eRunMode_Calib) {
+                    , runMode(eRunMode_Normal) {
 		/*
 		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
@@ -300,13 +300,13 @@ private:
 	std::deque<double> fAngular;
 
 	static constexpr double wheelSeparation = 0.2;
-	static constexpr double ppm = 1200;
+	static constexpr double ppm = 342;
 	static constexpr double mpp = 1.0 / ppm;
-	static constexpr double pwmPidKL = 0.1;
+	static constexpr double pwmPidKL = 0.2;
 	static constexpr double pwmPidKLA = -0.01;
-	static constexpr double pwmPidKRA = 0.1;
+	static constexpr double pwmPidKRA = 0;
 	static constexpr int fLenLinear = 8;
-	static constexpr int fLenAngular = 16;
+	static constexpr int fLenAngular = 8;
 
 	enum RunMode {
 		eRunMode_Normal,
