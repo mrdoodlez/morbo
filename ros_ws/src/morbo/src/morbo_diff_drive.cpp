@@ -22,7 +22,7 @@ class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive")
 					, prevTs(0)
-                    , runMode(eRunMode_Calib) {
+                    , runMode(eRunMode_Normal) {
 		/*
 		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
@@ -107,11 +107,11 @@ private:
 
 					if (prevTs != 0) {
 						double dt = currTime - prevTs;
-						double linear_l = (encoders->pulses_l - prevEnc.pulses_l) * mpp / dt * 1e6;
-						double linear_r = (encoders->pulses_r - prevEnc.pulses_r) * mpp / dt * 1e6;
+						int dpl = encoders->pulses_l - prevEnc.pulses_l;
+						int dpr = encoders->pulses_r - prevEnc.pulses_r;
 
-						res.first = (linear_l + linear_r) / 2;
-						res.second = (linear_l - linear_r) / wheelSeparation;
+						res.first = 0.5 * (dpl + dpr) * mpp / dt * 1e6;
+						res.second = (dpl - dpr) * rpp / dt * 1e6;
 					}
 
 					if (runMode == DiffDriveNode::eRunMode_Calib) {
@@ -157,42 +157,48 @@ private:
 				pwmLeft = -1;
 				pwmRight = 1;
 			}
-		} else if (setLinear == 0) {
-			if (setAngular > 0) {
-				pwmLeft = 1;
-				pwmRight = -1;
-			} else {
-				pwmLeft = -1;
-				pwmRight = 1;
-			}
 		} else {
 			auto vels = GetCurrVels();
 
 			currLinear  = FilterLinear(vels.first);
 			currAngular = FilterAngular(vels.second);
 
-			auto eLinear = setLinear - currLinear;
-			auto eAngular = setAngular - currAngular;
+			if (setLinear == 0) {
+				Sl = 0;
+				Sr = 0;
+				if (setAngular > 0) {
+					pwmLeft = 1;
+					pwmRight = -1;
+				} else {
+					pwmLeft = -1;
+					pwmRight = 1;
+				}
+			} else {
+				auto eLinear = setLinear - currLinear;
+				auto eAngular = setAngular - currAngular;
 
-			auto el = kl * eLinear + kal * eAngular;
-			auto er = kl * eLinear + kar * eAngular;
+				auto el = kl * eLinear + kal * eAngular;
+				auto er = kl * eLinear + kar * eAngular;
 
-			Sl += el;
-			Sr += er;
+				Sl += el;
+				Sr += er;
 
-			pwmLeft  = kp * el + ki * Sl;
-			pwmRight = kp * er + ki * Sr;
+				pwmLeft  = kp * el + ki * Sl;
+				pwmRight = kp * er + ki * Sr;
 
-			if (pwmLeft >  1) pwmLeft  = 1;
-			if (pwmLeft < -1) pwmLeft = -1;
+				if (pwmLeft >  1) pwmLeft  = 1;
+				if (pwmLeft < -1) pwmLeft = -1;
 
-			if (pwmRight >  1) pwmRight  = 1;
-			if (pwmRight < -1) pwmRight = -1;
+				if (pwmRight >  1) pwmRight  = 1;
+				if (pwmRight < -1) pwmRight = -1;
+			}
 
+			/*
 			std::ostringstream oss;
 			oss << " err: {" << eLinear << " " << eAngular << "}";
 
 			RCLCPP_INFO(get_logger(), oss.str());
+			*/
 		}
 
 		double dt = 20e-3; //TODO: fix it!
@@ -318,7 +324,9 @@ private:
 	std::deque<double> fLinear;
 	std::deque<double> fAngular;
 
-	static constexpr double wheelSeparation = 0.2;
+	static constexpr double ppr = 153;
+	static constexpr double rpp = 1.0 / ppr;
+
 	static constexpr double ppm = 342;
 	static constexpr double mpp = 1.0 / ppm;
 
