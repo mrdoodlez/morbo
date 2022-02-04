@@ -22,7 +22,7 @@ class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive")
 					, prevTs(0)
-                    , runMode(eRunMode_Normal) {
+                    , runMode(eRunMode_Calib) {
 		/*
 		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
 			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
@@ -137,8 +137,11 @@ private:
 	void TimerCallback() {
 		double currLinear = 0;
 		double currAngular = 0;
+		float pwmLeft = 0;
+		float pwmRight = 0;
 		if ((setLinear == 0) && (setAngular == 0)) {
-			pwmLeft = pwmRight = 0;
+			Sl = 0;
+			Sr = 0;
 			fLinear.clear();
 			fAngular.clear();
 		} else if (runMode == DiffDriveNode::eRunMode_Calib) {
@@ -147,6 +150,21 @@ private:
 				pwmLeft = pwmRight = 1;
 			else if (setLinear < 0)
 				pwmLeft = pwmRight = -1;
+			else if (setAngular > 0) {
+				pwmLeft = 1;
+				pwmRight = -1;
+			} else {
+				pwmLeft = -1;
+				pwmRight = 1;
+			}
+		} else if (setLinear == 0) {
+			if (setAngular > 0) {
+				pwmLeft = 1;
+				pwmRight = -1;
+			} else {
+				pwmLeft = -1;
+				pwmRight = 1;
+			}
 		} else {
 			auto vels = GetCurrVels();
 
@@ -156,8 +174,14 @@ private:
 			auto eLinear = setLinear - currLinear;
 			auto eAngular = setAngular - currAngular;
 
-			pwmLeft  += pwmPidKL * eLinear + pwmPidKLA * eAngular;
-			pwmRight += pwmPidKL * eLinear + pwmPidKRA * eAngular;
+			auto el = kl * eLinear + kal * eAngular;
+			auto er = kl * eLinear + kar * eAngular;
+
+			Sl += el;
+			Sr += er;
+
+			pwmLeft  = kp * el + ki * Sl;
+			pwmRight = kp * er + ki * Sr;
 
 			if (pwmLeft >  1) pwmLeft  = 1;
 			if (pwmLeft < -1) pwmLeft = -1;
@@ -165,12 +189,10 @@ private:
 			if (pwmRight >  1) pwmRight  = 1;
 			if (pwmRight < -1) pwmRight = -1;
 
-			/*
 			std::ostringstream oss;
 			oss << " err: {" << eLinear << " " << eAngular << "}";
 
 			RCLCPP_INFO(get_logger(), oss.str());
-			*/
 		}
 
 		double dt = 20e-3; //TODO: fix it!
@@ -286,9 +308,6 @@ private:
 
 	//std::queue<std::pair<>> encSamples;
 
-	float pwmLeft;
-	float pwmRight;
-
 	double setLinear;
 	double setAngular;
 
@@ -302,9 +321,16 @@ private:
 	static constexpr double wheelSeparation = 0.2;
 	static constexpr double ppm = 342;
 	static constexpr double mpp = 1.0 / ppm;
-	static constexpr double pwmPidKL = 0.2;
-	static constexpr double pwmPidKLA = -0.01;
-	static constexpr double pwmPidKRA = 0;
+
+	static constexpr double ki		= 0.1;
+	static constexpr double kp		= 2;
+	static constexpr double kl		= 1;
+	static constexpr double kal		= -0.01;
+	static constexpr double kar		=  0.01;
+
+	double Sl;
+	double Sr;
+
 	static constexpr int fLenLinear = 8;
 	static constexpr int fLenAngular = 8;
 
