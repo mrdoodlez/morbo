@@ -111,7 +111,7 @@ private:
 						int dpr = encoders->pulses_r - prevEnc.pulses_r;
 
 						res.first = 0.5 * (dpl + dpr) * mpp / dt * 1e6;
-						res.second = (dpl - dpr) * rpp / dt * 1e6;
+						res.second = (dpr - dpl) * rpp / dt * 1e6;
 					}
 
 					if (runMode == DiffDriveNode::eRunMode_Calib) {
@@ -151,11 +151,11 @@ private:
 			else if (setLinear < 0)
 				pwmLeft = pwmRight = -1;
 			else if (setAngular > 0) {
-				pwmLeft = 1;
-				pwmRight = -1;
-			} else {
 				pwmLeft = -1;
 				pwmRight = 1;
+			} else {
+				pwmLeft = 1;
+				pwmRight = -1;
 			}
 		} else {
 			auto vels = GetCurrVels();
@@ -167,11 +167,11 @@ private:
 				Sl = 0;
 				Sr = 0;
 				if (setAngular > 0) {
-					pwmLeft = 1;
-					pwmRight = -1;
-				} else {
 					pwmLeft = -1;
 					pwmRight = 1;
+				} else {
+					pwmLeft = 1;
+					pwmRight = -1;
 				}
 			} else {
 				auto eLinear = setLinear - currLinear;
