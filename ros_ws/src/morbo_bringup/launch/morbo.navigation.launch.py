@@ -21,6 +21,7 @@ def generate_launch_description():
     use_namespace = LaunchConfiguration('use_namespace')
     params_file = LaunchConfiguration('params_file')
     default_bt_xml_filename = LaunchConfiguration('default_bt_xml_filename')
+    use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
     map_yaml_file = LaunchConfiguration('map')
 
@@ -28,14 +29,16 @@ def generate_launch_description():
     use_robot_state_pub = LaunchConfiguration('use_robot_state_pub')
     headless = LaunchConfiguration('headless')
 
+    pkg_share = FindPackageShare(package='morbo_bringup').find('morbo_bringup')
+
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
     # https://github.com/ros/geometry2/issues/32
     # https://github.com/ros/robot_state_publisher/pull/30
     # TODO(orduno) Substitute with `PushNodeRemapping`
     #              https://github.com/ros2/launch_ros/issues/56
-    #remappings = [('/tf', 'tf'),
-    #              ('/tf_static', 'tf_static')]
+    remappings = [('/tf', 'tf'),
+                  ('/tf_static', 'tf_static')]
 
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -55,13 +58,18 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map',
-        default_value=os.path.join(bringup_dir, 'maps', 'turtlebot3_world.yaml'),
+        default_value=os.path.join(pkg_share, 'maps/world.yaml'),
         description='Full path to map file to load')
 
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
         default_value=os.path.join(bringup_dir, 'params', 'nav2_params.yaml'),
         description='Full path to the ROS2 parameters file to use for all launched nodes')
+
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Use simulation (Gazebo) clock if true')
 
     declare_bt_xml_cmd = DeclareLaunchArgument(
         'default_bt_xml_filename',
@@ -79,16 +87,17 @@ def generate_launch_description():
         default_value='True',
         description='Whether to start the robot state publisher')
 
-    pkg_share = FindPackageShare(package='morbo_bringup').find('morbo_bringup')
     urdf = os.path.join(pkg_share, 'urdf/morbo.urdf')
 
     start_robot_state_publisher_cmd = Node(
         condition=IfCondition(use_robot_state_pub),
         package='robot_state_publisher',
         executable='robot_state_publisher',
+        parameters=[{'use_sim_time': use_sim_time}],
         name='robot_state_publisher',
         namespace=namespace,
         output='screen',
+        remappings=remappings,
         arguments=[urdf])
     
     #remappings=remappings,
@@ -117,6 +126,7 @@ def generate_launch_description():
                           'use_namespace': use_namespace,
                           'slam': slam,
                           'map': map_yaml_file,
+                          'use_sim_time': use_sim_time,
                           'params_file': params_file,
                           'default_bt_xml_filename': default_bt_xml_filename,
                           'autostart': autostart}.items())
@@ -129,6 +139,7 @@ def generate_launch_description():
     ld.add_action(declare_use_namespace_cmd)
     ld.add_action(declare_slam_cmd)
     ld.add_action(declare_map_yaml_cmd)
+    ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_bt_xml_cmd)
     ld.add_action(declare_autostart_cmd)

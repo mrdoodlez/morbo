@@ -101,9 +101,11 @@ private:
 				if ((cmd.m == 'm') && (cmd.b == 'b')) {
 					mc_control_encoders_t *encoders
 						= (mc_control_encoders_t*)(cmd.payload);
-					uint64_t currTime =
-						std::chrono::duration_cast<std::chrono::microseconds>
-						(std::chrono::system_clock::now().time_since_epoch()).count();
+
+					rcutils_time_point_value_t now;
+					rcutils_system_time_now(&now);
+
+					uint64_t currTime = RCL_NS_TO_US(now);
 
 					if (prevTs != 0) {
 						double dt = currTime - prevTs;
@@ -167,11 +169,11 @@ private:
 				Sl = 0;
 				Sr = 0;
 				if (setAngular > 0) {
-					pwmLeft = -1;
-					pwmRight = 1;
+					pwmLeft = -0.5;
+					pwmRight = 0.5;
 				} else {
-					pwmLeft = 1;
-					pwmRight = -1;
+					pwmLeft = 0.5;
+					pwmRight = -0.5;
 				}
 			} else {
 				auto eLinear = setLinear - currLinear;
@@ -333,8 +335,8 @@ private:
 	static constexpr double ki		= 0.1;
 	static constexpr double kp		= 2;
 	static constexpr double kl		= 1;
-	static constexpr double kal		= -0.01;
-	static constexpr double kar		=  0.01;
+	static constexpr double kal		=  0.01;
+	static constexpr double kar		= -0.01;
 
 	double Sl;
 	double Sr;
