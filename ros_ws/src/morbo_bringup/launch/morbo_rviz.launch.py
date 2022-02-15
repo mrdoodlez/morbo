@@ -8,6 +8,7 @@ def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package='morbo_bringup').find('morbo_bringup')
     default_model_path = os.path.join(pkg_share, 'urdf/morbo.urdf')
     default_rviz_config_path = os.path.join(pkg_share, 'rviz/nav2_default_view.rviz')
+    #default_rviz_config_path = os.path.join(pkg_share, 'rviz/urdf_config.rviz')
 
     rviz_node = launch_ros.actions.Node(
         package='rviz2',
