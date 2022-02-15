@@ -326,7 +326,7 @@ private:
 	std::deque<double> fLinear;
 	std::deque<double> fAngular;
 
-	static constexpr double ppr = 153;
+	static constexpr double ppr = 103;
 	static constexpr double rpp = 1.0 / ppr;
 
 	static constexpr double ppm = 342;
@@ -335,14 +335,14 @@ private:
 	static constexpr double ki		= 0.1;
 	static constexpr double kp		= 2;
 	static constexpr double kl		= 1;
-	static constexpr double kal		=  0.01;
-	static constexpr double kar		= -0.01;
+	static constexpr double kal		= -0.01;
+	static constexpr double kar		=  0.01;
 
 	double Sl;
 	double Sr;
 
-	static constexpr int fLenLinear = 8;
-	static constexpr int fLenAngular = 8;
+	static constexpr int fLenLinear = 4;
+	static constexpr int fLenAngular = 4;
 
 	enum RunMode {
 		eRunMode_Normal,
