@@ -20,7 +20,8 @@ class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive")
 					, prevTs(0)
-                    , runMode(eRunMode_Normal) {
+                    , runMode(eRunMode_Normal)
+					, th(1e6) {
 
 		const char uartFileName[] = "/dev/ttyUSB0";
 
@@ -78,6 +79,8 @@ public:
 			exit(-1);
 		}
 
+		imu->IMUInit();
+
 		imu->setSlerpPower(0.02);
 		imu->setGyroEnable(true);
 		imu->setAccelEnable(true);
@@ -90,13 +93,11 @@ private:
 		setAngular = msg->angular.z;
 	}
 
-	std::pair<double, double> GetCurrVels() {
+	void GetOdom(std::pair<double, double>& vels, RTIMU_DATA& imuData) {
 		mc_control_cmd_t cmd;
 		cmd.m = 'm';
 		cmd.b = 'b';
 		cmd.code = MC_RC_CODE_GET_ENCODERS;
-
-		std::pair<double, double> res(0, 0);
 
 		if (write(uart, &(cmd), sizeof(cmd)) == sizeof(cmd)) {
 			memset(&cmd, 0, sizeof(cmd));
@@ -115,14 +116,15 @@ private:
 						int dpl = encoders->pulses_l - prevEnc.pulses_l;
 						int dpr = encoders->pulses_r - prevEnc.pulses_r;
 
-						res.first = 0.5 * (dpl + dpr) * mpp / dt * 1e6;
-						res.second = (dpr - dpl) * rpp / dt * 1e6;
+						vels.first = 0.5 * (dpl + dpr) * mpp / dt * 1e6;
+						vels.second = (dpr - dpl) * rpp / dt * 1e6;
 					}
 
 					if (runMode == DiffDriveNode::eRunMode_Calib) {
 						if (encoders->pulses_l != prevEnc.pulses_l) {
 							std::ostringstream oss;
-							oss << " enc: {" << encoders->pulses_l << " " << encoders->pulses_r << "}";
+							oss << " enc: {" << encoders->pulses_l << " "
+								<< encoders->pulses_r << "}";
 							RCLCPP_INFO(get_logger(), oss.str());
 						}
 					}
@@ -136,21 +138,31 @@ private:
 		} else
 			; //TODO: handle error
 
-		return res;
+		if (!imu->IMURead()) {
+			RCLCPP_INFO(get_logger(), "[FATAL] Failed to read IMU data");
+			exit(-1);
+		}
+
+		imuData = imu->getIMUData();
 	}
 
 	void TimerCallback() {
-		double currLinear = 0;
-		double currAngular = 0;
+		std::pair<double, double> vels;
+		RTIMU_DATA imuData;
+
+		GetOdom(vels, imuData);
+
+		double currLinear  = 0;
+		double currAngular = -imuData.gyro.z();
+
 		float pwmLeft = 0;
 		float pwmRight = 0;
+
 		if ((setLinear == 0) && (setAngular == 0)) {
 			Sl = 0;
 			Sr = 0;
 			fLinear.clear();
-			fAngular.clear();
 		} else if (runMode == DiffDriveNode::eRunMode_Calib) {
-			auto vels = GetCurrVels();
 			if (setLinear > 0)
 				pwmLeft = pwmRight = 1;
 			else if (setLinear < 0)
@@ -163,11 +175,7 @@ private:
 				pwmRight = -1;
 			}
 		} else {
-			auto vels = GetCurrVels();
-
-			currLinear  = FilterLinear(vels.first);
-			currAngular = FilterAngular(vels.second);
-
+			currLinear = FilterLinear(vels.first);
 			if (setLinear == 0) {
 				Sl = 0;
 				Sr = 0;
@@ -197,24 +205,28 @@ private:
 				if (pwmRight >  1) pwmRight  = 1;
 				if (pwmRight < -1) pwmRight = -1;
 			}
-
-			/*
-			std::ostringstream oss;
-			oss << " err: {" << eLinear << " " << eAngular << "}";
-
-			RCLCPP_INFO(get_logger(), oss.str());
-			*/
 		}
+
 
 		double dt = 20e-3; //TODO: fix it!
 
-		th += currAngular * dt;
+		if (th == 1e6)
+			th0 = -imuData.fusionPose.z();
+
+		th = -(th0 + imuData.fusionPose.z());
 
 		auto vx = currLinear * cos (th);
 		auto vy = currLinear * sin (th);
 
 		x += vx * dt;
 		y += vy * dt;
+
+		std::ostringstream oss;
+
+		oss << "{" << currLinear << " " << currAngular <<
+			" " << x << " " << y << " " << th << "} ";
+
+		RCLCPP_INFO(get_logger(), oss.str());
 
 		rcutils_time_point_value_t now;
 		rcutils_system_time_now(&now);
@@ -322,6 +334,7 @@ private:
 	double x;
 	double y;
 	double th;
+	double th0;
 
 	std::deque<double> fLinear;
 	std::deque<double> fAngular;
