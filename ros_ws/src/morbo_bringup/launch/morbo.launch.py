@@ -5,15 +5,22 @@ import launch_ros
 import os
 
 def generate_launch_description():
+    pkg_share = launch_ros.substitutions.FindPackageShare(package='morbo_bringup').find('morbo_bringup')
+    default_model_path = os.path.join(pkg_share, 'urdf/morbo.urdf')
+    rtimulibini = os.path.join(pkg_share, 'params/rtimulib')
+
     diff_drive_node = Node(
         package = "morbo",
-        executable = "morbo_diff_drive"
+        executable = "morbo_diff_drive",
+        parameters=[{
+            'inipath': rtimulibini,
+        }],
     )
 
     rplidar_node = Node(
-        node_name='rplidar_composition',
+        name='rplidar_composition',
         package='rplidar_ros',
-        node_executable='rplidar_composition',
+        executable='rplidar_composition',
         output='screen',
         parameters=[{
             'serial_port': '/dev/ttyUSB1',
@@ -23,9 +30,6 @@ def generate_launch_description():
             'angle_compensate': True,
         }],
     )
-
-    pkg_share = launch_ros.substitutions.FindPackageShare(package='morbo_bringup').find('morbo_bringup')
-    default_model_path = os.path.join(pkg_share, 'urdf/morbo.urdf')
 
     robot_state_publisher_node = launch_ros.actions.Node(
         package='robot_state_publisher',

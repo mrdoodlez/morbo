@@ -10,31 +10,17 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include <sstream>
 #include <deque>
+#include <RTIMULib.h>
 
 extern "C" {
-	//#include <linux/i2c-dev.h>
 	#include "../../../../machine_control/motor_control/mc_proto.h"
 }
-
-//#define TRANSFER_ADDRESS	0x3f
 
 class DiffDriveNode : public rclcpp::Node {
 public:
 	DiffDriveNode() : Node("morbo_diff_drive")
 					, prevTs(0)
                     , runMode(eRunMode_Normal) {
-		/*
-		if ((i2c = open("/dev/i2c-1", O_RDWR)) < 0) {
-			RCLCPP_INFO(get_logger(), "[FATAL] Failed to open /dev/i2c-1");
-			exit(-1);
-		}
-
-		if (ioctl(i2c, I2C_SLAVE, TRANSFER_ADDRESS) < 0)
-		{
-			RCLCPP_INFO(get_logger(), "[FATAL] Failed to set i2c slave addr");
-			exit(-1);
-		}
-		*/
 
 		const char uartFileName[] = "/dev/ttyUSB0";
 
@@ -79,6 +65,23 @@ public:
 
 		tmr = create_wall_timer(std::chrono::milliseconds(20),
 		   std::bind(&DiffDriveNode::TimerCallback, this));
+
+		declare_parameter("inipath", "./");
+		auto inipath = get_parameter("inipath").as_string();
+
+		RTIMUSettings *settings = new RTIMUSettings(inipath.c_str());
+
+		imu = RTIMU::createIMU(settings);
+
+		if ((imu == NULL) || (imu->IMUType() == RTIMU_TYPE_NULL)) {
+			RCLCPP_INFO(get_logger(), "[FATAL] No IMU found!");
+			exit(-1);
+		}
+
+		imu->setSlerpPower(0.02);
+		imu->setGyroEnable(true);
+		imu->setAccelEnable(true);
+		imu->setCompassEnable(true);
 	}
 
 private:
@@ -308,13 +311,10 @@ private:
 	std::shared_ptr<tf2_ros::TransformBroadcaster> transformBroadcaster;
 	rclcpp::TimerBase::SharedPtr tmr;
 
-	int i2c;
 	int uart;
-	
+
 	mc_control_encoders_t prevEnc;
 	uint64_t prevTs;
-
-	//std::queue<std::pair<>> encSamples;
 
 	double setLinear;
 	double setAngular;
@@ -343,6 +343,8 @@ private:
 
 	static constexpr int fLenLinear = 4;
 	static constexpr int fLenAngular = 4;
+
+	RTIMU *imu;
 
 	enum RunMode {
 		eRunMode_Normal,
