@@ -12,6 +12,8 @@
 #include <deque>
 #include <RTIMULib.h>
 
+#define DT	30
+
 extern "C" {
 	#include "../../../../machine_control/motor_control/mc_proto.h"
 }
@@ -64,7 +66,7 @@ public:
 	
 		transformBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
-		tmr = create_wall_timer(std::chrono::milliseconds(20),
+		tmr = create_wall_timer(std::chrono::milliseconds(DT),
 		   std::bind(&DiffDriveNode::TimerCallback, this));
 
 		declare_parameter("inipath", "./");
@@ -153,7 +155,7 @@ private:
 		GetOdom(vels, imuData);
 
 		double currLinear  = 0;
-		double currAngular = -imuData.gyro.z();
+		double currAngular = FilterAngular(-imuData.gyro.z());
 
 		float pwmLeft = 0;
 		float pwmRight = 0;
@@ -208,12 +210,12 @@ private:
 		}
 
 
-		double dt = 20e-3; //TODO: fix it!
+		double dt = DT * 1.0e-3; //TODO: fix it!
 
 		if (th == 1e6)
 			th0 = -imuData.fusionPose.z();
 
-		th = -(th0 + imuData.fusionPose.z());
+		th = -(th0 + FilterTh(imuData.fusionPose.z()));
 
 		auto vx = currLinear * cos (th);
 		auto vy = currLinear * sin (th);
@@ -221,12 +223,14 @@ private:
 		x += vx * dt;
 		y += vy * dt;
 
+		/*
 		std::ostringstream oss;
 
 		oss << "{" << currLinear << " " << currAngular <<
 			" " << x << " " << y << " " << th << "} ";
 
 		RCLCPP_INFO(get_logger(), oss.str());
+		*/
 
 		rcutils_time_point_value_t now;
 		rcutils_system_time_now(&now);
@@ -318,6 +322,22 @@ private:
 		return res;
 	}
 
+	double FilterTh(double newSample) {
+		double res = newSample;
+
+		for (auto x : fTh)
+			res += x;
+
+		res /= fTh.size() + 1;
+
+		fTh.push_back(newSample);
+
+		if (fTh.size() > fLenTh)
+			fTh.pop_front();
+
+		return res;
+	}
+
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
 	rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPublisher;
 	std::shared_ptr<tf2_ros::TransformBroadcaster> transformBroadcaster;
@@ -338,6 +358,7 @@ private:
 
 	std::deque<double> fLinear;
 	std::deque<double> fAngular;
+	std::deque<double> fTh;
 
 	static constexpr double ppr = 103;
 	static constexpr double rpp = 1.0 / ppr;
@@ -356,6 +377,7 @@ private:
 
 	static constexpr int fLenLinear = 4;
 	static constexpr int fLenAngular = 4;
+	static constexpr int fLenTh = 4;
 
 	RTIMU *imu;
 
