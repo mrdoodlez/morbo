@@ -23,7 +23,9 @@ public:
 	DiffDriveNode() : Node("morbo_diff_drive")
 					, prevTs(0)
                     , runMode(eRunMode_Normal)
-					, th(1e6) {
+					, fLinear(4)
+					, fAngular(4)
+					, fTh(4) {
 
 		const char uartFileName[] = "/dev/ttyUSB0";
 
@@ -155,7 +157,7 @@ private:
 		GetOdom(vels, imuData);
 
 		double currLinear  = 0;
-		double currAngular = FilterAngular(-imuData.gyro.z());
+		double currAngular = fAngular.Add(-imuData.gyro.z());
 
 		float pwmLeft = 0;
 		float pwmRight = 0;
@@ -163,7 +165,7 @@ private:
 		if ((setLinear == 0) && (setAngular == 0)) {
 			Sl = 0;
 			Sr = 0;
-			fLinear.clear();
+			fLinear.Clear();
 		} else if (runMode == DiffDriveNode::eRunMode_Calib) {
 			if (setLinear > 0)
 				pwmLeft = pwmRight = 1;
@@ -177,7 +179,7 @@ private:
 				pwmRight = -1;
 			}
 		} else {
-			currLinear = FilterLinear(vels.first);
+			currLinear = fLinear.Add(vels.first);
 			if (setLinear == 0) {
 				Sl = 0;
 				Sr = 0;
@@ -212,10 +214,7 @@ private:
 
 		double dt = DT * 1.0e-3; //TODO: fix it!
 
-		if (th == 1e6)
-			th0 = -imuData.fusionPose.z();
-
-		th = -(th0 + FilterTh(imuData.fusionPose.z()));
+		th = fTh.Add(-imuData.fusionPose.z());
 
 		auto vx = currLinear * cos (th);
 		auto vy = currLinear * sin (th);
@@ -290,54 +289,6 @@ private:
 			; //TODO: handle error
 	}
 
-	double FilterLinear(double newSample) {
-		double res = newSample;
-
-		for (auto x : fLinear)
-			res += x;
-
-		res /= fLinear.size() + 1;
-
-		fLinear.push_back(newSample);
-
-		if (fLinear.size() > fLenLinear)
-			fLinear.pop_front();
-
-		return res;
-	}
-
-	double FilterAngular(double newSample) {
-		double res = newSample;
-
-		for (auto x : fAngular)
-			res += x;
-
-		res /= fAngular.size() + 1;
-
-		fAngular.push_back(newSample);
-
-		if (fAngular.size() > fLenAngular)
-			fAngular.pop_front();
-
-		return res;
-	}
-
-	double FilterTh(double newSample) {
-		double res = newSample;
-
-		for (auto x : fTh)
-			res += x;
-
-		res /= fTh.size() + 1;
-
-		fTh.push_back(newSample);
-
-		if (fTh.size() > fLenTh)
-			fTh.pop_front();
-
-		return res;
-	}
-
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
 	rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPublisher;
 	std::shared_ptr<tf2_ros::TransformBroadcaster> transformBroadcaster;
@@ -354,11 +305,32 @@ private:
 	double x;
 	double y;
 	double th;
-	double th0;
 
-	std::deque<double> fLinear;
-	std::deque<double> fAngular;
-	std::deque<double> fTh;
+	class MovAvg {
+	public:
+		MovAvg(int len_) : len(len_) {}
+
+		double Add(double newSample) {
+			if (samples.size() == len)
+				samples.pop_front();
+
+			samples.push_back(newSample);
+
+			double res = 0;
+			for (auto x : samples)
+				res += x;
+
+			return  res / samples.size();
+		}
+
+		void Clear() {
+			samples.clear();
+		}
+
+	private:
+		const int len;
+		std::deque<double> samples;
+	} fLinear, fAngular, fTh;
 
 	static constexpr double ppr = 103;
 	static constexpr double rpp = 1.0 / ppr;
@@ -374,10 +346,6 @@ private:
 
 	double Sl;
 	double Sr;
-
-	static constexpr int fLenLinear = 4;
-	static constexpr int fLenAngular = 4;
-	static constexpr int fLenTh = 4;
 
 	RTIMU *imu;
 
