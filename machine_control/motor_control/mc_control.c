@@ -6,9 +6,10 @@
 
 #define MOTOR_CONTROL_MOVE_PERIOD_MS	100
 
-#define MC_NUM_TASKS					1
+#define MC_NUM_TASKS					2
 
 #define MOTOR_CONTROL_TASK_ID			0
+#define TURRET_CONTROL_TASK_ID			1
 
 typedef struct {
 	uint32_t scheduler_ts_ms;
@@ -46,6 +47,7 @@ static void _mc_work_speeds(mc_control_speeds_t* speeds);
 static void _mc_work_stop();
 
 static void _motor_control_task(void *arg);
+static void _turret_control_task(void *arg);
 
 /*****************************************************************************/
 
@@ -59,24 +61,19 @@ void mc_init() {
 	memset(&_transfer_state, 0, sizeof(_transfer_state));
 	_machine_state.tasks[MOTOR_CONTROL_TASK_ID].task_function
 		= _motor_control_task;
+	_machine_state.tasks[TURRET_CONTROL_TASK_ID].task_function
+		= _turret_control_task;
 }
 
 void mc_work() {
 	uint32_t curr = board_get_time();
-	if (_machine_state.new_cmd) {
-		if ((_machine_state.last_cmd.code == MC_RC_CODE_SET_PWM)
-			|| (_machine_state.last_cmd.code == MC_RC_CODE_GET_ENCODERS))
-		{
-			_machine_state.tasks[MOTOR_CONTROL_TASK_ID].task_function(0);
-			_machine_state.tasks[MOTOR_CONTROL_TASK_ID].scheduler_ts_ms = curr;
-		}
-		_machine_state.new_cmd = 0;
-	}
 
 	for (uint32_t task_id = 0; task_id < MC_NUM_TASKS; task_id++) {
 		_machine_state.tasks[task_id].task_function(0);
 		_machine_state.tasks[task_id].scheduler_ts_ms = curr;
 	}
+
+	_machine_state.new_cmd = 0;
 }
 
 void mc_push_command(uint8_t* cmd_buff) {
@@ -136,6 +133,29 @@ static void _motor_control_task(void *arg) {
 				_machine_state.vl = 0;
 				_machine_state.vr = 0;
 			}
+		}
+	}
+}
+
+static void _turret_control_task(void *arg) {
+	static struct {
+		float angle_v;
+		float angle_h;
+	} curr_state = {
+		90.0,
+		90.0
+	};
+
+	if (_machine_state.new_cmd) {
+		if (_machine_state.last_cmd.code == MC_RC_CODE_SET_TURRET) {
+			mc_control_turret_t *turret = _machine_state.last_cmd.payload;
+			if (curr_state.angle_v != turret->angle_v)
+				board_set_servo_pos (BOARD_SERVO_CH_0, turret->angle_v);
+			if (curr_state.angle_h != turret->angle_h)
+				board_set_servo_pos (BOARD_SERVO_CH_1, turret->angle_h);
+
+			curr_state.angle_v = turret->angle_v;
+			curr_state.angle_h = turret->angle_h;
 		}
 	}
 }
