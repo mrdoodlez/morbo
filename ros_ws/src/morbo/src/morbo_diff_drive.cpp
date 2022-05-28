@@ -273,6 +273,8 @@ private:
 		odomPublisher->publish(move(odom));
 
 		SendPwm( {pwmLeft, pwmRight} );
+
+		SetTurret();
 	}
 
 	void SendPwm(const std::pair<float, float>& pwm) const {
@@ -287,6 +289,26 @@ private:
 
 		if (write(uart, &cmd, sizeof(cmd)) != sizeof(cmd))
 			; //TODO: handle error
+	}
+
+	void SetTurret() {
+		static int pos_h = 0;
+		static int pos_v = 0;
+
+		mc_control_cmd_t cmd;
+		cmd.m = 'm';
+		cmd.b = 'b';
+		cmd.code = MC_RC_CODE_SET_TURRET;
+
+		mc_control_turret_t *trt = (mc_control_turret_t*)&(cmd.payload);
+		trt->angle_v = pos_v % 180;
+		trt->angle_h = pos_h % 180;
+
+		if (write(uart, &cmd, sizeof(cmd)) != sizeof(cmd))
+			; //TODO: handle error
+
+		pos_h += 5;
+		pos_v += 5;
 	}
 
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;

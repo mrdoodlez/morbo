@@ -100,7 +100,8 @@
 
 #define  PERIOD_VALUE       (uint32_t)(1330 - 1)  /* Period Value  */
 
-extern TIM_HandleTypeDef  TimHandle;
+extern TIM_HandleTypeDef  mcTimHandle;
+extern TIM_HandleTypeDef  svTimHandle;
 extern TIM_OC_InitTypeDef sConfig;
 
 void Error_Handler(void);

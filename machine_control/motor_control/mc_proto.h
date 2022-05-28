@@ -5,6 +5,7 @@
 
 #define MC_RC_CODE_SET_PWM				0
 #define MC_RC_CODE_GET_ENCODERS			1
+#define MC_RC_CODE_SET_TURRET			2
 
 typedef struct {
 	uint8_t m;
@@ -22,5 +23,11 @@ typedef struct {
 	int32_t pulses_l;
 	int32_t pulses_r;
 } __attribute__((packed)) mc_control_encoders_t;
+
+typedef struct {
+	float angle_v;
+	float angle_h;
+	uint8_t cannon;
+} __attribute__((packed)) mc_control_turret_t;
 
 #endif //_MC_PROTO_H_

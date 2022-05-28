@@ -2,12 +2,8 @@
 #include "board_api.h"
 #include "mc_proto.h"
 
-#define  PULSE1_VALUE			(uint32_t)(PERIOD_VALUE/2)        /* Capture Compare 1 Value  */
-#define  PULSE2_VALUE			(uint32_t)(PERIOD_VALUE*37.5/100) /* Capture Compare 2 Value  */
-#define  PULSE3_VALUE			(uint32_t)(PERIOD_VALUE/4)        /* Capture Compare 3 Value  */
-#define  PULSE4_VALUE			(uint32_t)(PERIOD_VALUE*12.5/100) /* Capture Compare 4 Value  */
-
-TIM_HandleTypeDef  TimHandle;
+TIM_HandleTypeDef  mcTimHandle;
+TIM_HandleTypeDef  svTimHandle;
 TIM_OC_InitTypeDef sConfig;
 UART_HandleTypeDef UartHandle;
 GPIO_InitTypeDef  GPIO_InitStruct;
@@ -60,16 +56,16 @@ int main(void) {
 
 	uhPrescalerValue = (uint32_t)(SystemCoreClock / 24000000) - 1;
 
-	TimHandle.Instance = TIMx;
+	mcTimHandle.Instance = TIMx;
 
-	TimHandle.Init.Prescaler         = uhPrescalerValue;
-	TimHandle.Init.Period            = PERIOD_VALUE;
-	TimHandle.Init.ClockDivision     = 0;
-	TimHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-	TimHandle.Init.RepetitionCounter = 0;
-	TimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	mcTimHandle.Init.Prescaler         = uhPrescalerValue;
+	mcTimHandle.Init.Period            = PERIOD_VALUE;
+	mcTimHandle.Init.ClockDivision     = 0;
+	mcTimHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+	mcTimHandle.Init.RepetitionCounter = 0;
+	mcTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
-	if (HAL_TIM_PWM_Init(&TimHandle) != HAL_OK) {
+	if (HAL_TIM_PWM_Init(&mcTimHandle) != HAL_OK) {
 		/* Initialization Error */
 		Error_Handler();
 	}
@@ -85,9 +81,18 @@ int main(void) {
 
 	/*************************************************************************/
 
+	board_enable_servos();
+	board_set_servo_pos (BOARD_SERVO_CH_0, 90);
+	board_set_servo_pos (BOARD_SERVO_CH_1, 90);
+
+	/*************************************************************************/
+
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 
-	GPIO_InitStruct.Pin = (GPIO_PIN_8
+	GPIO_InitStruct.Pin = (GPIO_PIN_1
+						   | GPIO_PIN_3
+						   | GPIO_PIN_5
+						   | GPIO_PIN_8
 						   | GPIO_PIN_9
 						   | GPIO_PIN_14
 						   | GPIO_PIN_15 );
