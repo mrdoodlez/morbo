@@ -22,9 +22,10 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(example_interfaces REQUIRED)
 
 add_executable(morbo_diff_drive src/morbo_diff_drive.cpp)
-ament_target_dependencies(morbo_diff_drive rclcpp geometry_msgs nav_msgs tf2 tf2_ros)
+ament_target_dependencies(morbo_diff_drive rclcpp geometry_msgs example_interfaces nav_msgs tf2 tf2_ros)
 
 install(TARGETS
 	morbo_diff_drive
