@@ -6,10 +6,11 @@
 
 #define MOTOR_CONTROL_MOVE_PERIOD_MS	100
 
-#define MC_NUM_TASKS					2
-
 #define MOTOR_CONTROL_TASK_ID			0
 #define TURRET_CONTROL_TASK_ID			1
+#define LED_CONTROL_TASK_ID				2
+
+#define MC_NUM_TASKS					3
 
 typedef struct {
 	uint32_t scheduler_ts_ms;
@@ -48,6 +49,7 @@ static void _mc_work_stop();
 
 static void _motor_control_task(void *arg);
 static void _turret_control_task(void *arg);
+static void _led_control_task(void *arg);
 
 /*****************************************************************************/
 
@@ -63,6 +65,8 @@ void mc_init() {
 		= _motor_control_task;
 	_machine_state.tasks[TURRET_CONTROL_TASK_ID].task_function
 		= _turret_control_task;
+	_machine_state.tasks[LED_CONTROL_TASK_ID].task_function
+		= _led_control_task;
 }
 
 void mc_work() {
@@ -156,6 +160,33 @@ static void _turret_control_task(void *arg) {
 
 			curr_state.angle_v = turret->angle_v;
 			curr_state.angle_h = turret->angle_h;
+		}
+	}
+}
+
+static void _led_control_task(void *arg) {
+	static struct {
+		enum {
+			LED_COLOR_RED		= 0,
+			LED_COLOR_BLUE		= 1,
+		} color;
+		uint32_t on_ts;
+	} state = {
+		.color = LED_COLOR_RED,
+	};
+
+	uint32_t curr = board_get_time();
+
+	if ((curr - state.on_ts) > 500) {
+		state.color = 1 - state.color;
+		state.on_ts = curr;
+
+		if (state.color == LED_COLOR_RED) {
+			board_blue_on(0);
+			board_red_on(1);
+		} else if (state.color == LED_COLOR_BLUE) {
+			board_blue_on(1);
+			board_red_on(0);
 		}
 	}
 }
