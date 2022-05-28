@@ -184,11 +184,11 @@ private:
 				Sl = 0;
 				Sr = 0;
 				if (setAngular > 0) {
-					pwmLeft = -0.7;
-					pwmRight = 0.7;
+					pwmLeft = -1;
+					pwmRight = 1;
 				} else {
-					pwmLeft = 0.7;
-					pwmRight = -0.7;
+					pwmLeft = 1;
+					pwmRight = -1;
 				}
 			} else {
 				auto eLinear = setLinear - currLinear;
