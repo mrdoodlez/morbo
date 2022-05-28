@@ -19,6 +19,12 @@
 
 #define SERVO_PERIOD				0xB800;
 
+#define LEDS_PORT					GPIOA
+
+#define LED_RED						GPIO_PIN_1
+#define LED_BLUE					GPIO_PIN_3
+#define LED_LASER					GPIO_PIN_5
+
 void board_delay(unsigned int ms) {
 	HAL_Delay(ms);
 }
@@ -159,4 +165,19 @@ void board_set_servo_pos (board_servo_channel_t ch, float angle) {
 		/* PWM generation Error */
 		Error_Handler();
 	}
+}
+
+void board_laser_on(uint8_t on)
+{
+	HAL_GPIO_WritePin(LEDS_PORT, LED_LASER, on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+void board_red_on(uint8_t on)
+{
+	HAL_GPIO_WritePin(LEDS_PORT, LED_RED, on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+void board_blue_on(uint8_t on)
+{
+	HAL_GPIO_WritePin(LEDS_PORT, LED_BLUE, on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }

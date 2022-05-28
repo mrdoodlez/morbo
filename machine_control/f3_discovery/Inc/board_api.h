@@ -39,5 +39,9 @@ void board_set_pwm_enable    (board_pwm_channel_t ch, board_pwm_enable_t en);
 void board_enable_servos (void);
 void board_set_servo_pos (board_servo_channel_t ch, float angle);
 
+void board_laser_on (uint8_t on);
+void board_red_on   (uint8_t on);
+void board_blue_on  (uint8_t on);
+
 #endif //_BOARD_API_H_
 
