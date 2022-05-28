@@ -145,6 +145,7 @@ static void _turret_control_task(void *arg) {
 	static struct {
 		float angle_v;
 		float angle_h;
+		uint8_t cannon;
 	} curr_state = {
 		90.0,
 		90.0
@@ -157,9 +158,12 @@ static void _turret_control_task(void *arg) {
 				board_set_servo_pos (BOARD_SERVO_CH_0, turret->angle_v);
 			if (curr_state.angle_h != turret->angle_h)
 				board_set_servo_pos (BOARD_SERVO_CH_1, turret->angle_h);
+			if (curr_state.cannon != turret->cannon)
+				board_laser_on (turret->cannon);
 
 			curr_state.angle_v = turret->angle_v;
 			curr_state.angle_h = turret->angle_h;
+			curr_state.cannon = turret->cannon;
 		}
 	}
 }
