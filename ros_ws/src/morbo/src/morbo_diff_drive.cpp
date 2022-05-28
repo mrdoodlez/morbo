@@ -4,7 +4,8 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include "geometry_msgs/msg/twist.hpp"
-#include <geometry_msgs/msg/transform_stamped.hpp>
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "example_interfaces/msg/float32_multi_array.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -62,6 +63,13 @@ public:
 				std::bind(&DiffDriveNode::CmdVelCallback,
 				this,
 				std::placeholders::_1));
+		
+		turretSubscriber = create_subscription<example_interfaces::msg::Float32MultiArray>(
+				"turret_pos",
+				10,
+				std::bind(&DiffDriveNode::TurretPosCallback,
+				this,
+				std::placeholders::_1));
 
 		auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
 		odomPublisher = create_publisher<nav_msgs::msg::Odometry>("odom", qos);
@@ -95,6 +103,12 @@ private:
 	void CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
 		setLinear = msg->linear.x;
 		setAngular = msg->angular.z;
+	}
+
+	void TurretPosCallback(const example_interfaces::msg::Float32MultiArray::SharedPtr msg) {
+		setH = msg->data[0];
+		setV = msg->data[1];
+		cannonOn = msg->data[2] > 0;
 	}
 
 	void GetOdom(std::pair<double, double>& vels, RTIMU_DATA& imuData) {
@@ -151,6 +165,25 @@ private:
 	}
 
 	void TimerCallback() {
+		static struct {
+			float posV;
+			float posH;
+			bool cannonOn;
+		} turretState;
+
+		if ((setV != turretState.posV)
+			|| (setH != turretState.posH)
+			|| (cannonOn != turretState.cannonOn)) {
+
+			SetTurret(setV, setH, cannonOn);
+
+			turretState.posV = setV;
+			turretState.posH = setH;
+			turretState.cannonOn = cannonOn;
+
+			return;
+		}
+
 		std::pair<double, double> vels;
 		RTIMU_DATA imuData;
 
@@ -222,14 +255,12 @@ private:
 		x += vx * dt;
 		y += vy * dt;
 
-		/*
 		std::ostringstream oss;
 
 		oss << "{" << currLinear << " " << currAngular <<
 			" " << x << " " << y << " " << th << "} ";
 
 		RCLCPP_INFO(get_logger(), oss.str());
-		*/
 
 		rcutils_time_point_value_t now;
 		rcutils_system_time_now(&now);
@@ -273,8 +304,6 @@ private:
 		odomPublisher->publish(move(odom));
 
 		SendPwm( {pwmLeft, pwmRight} );
-
-		SetTurret();
 	}
 
 	void SendPwm(const std::pair<float, float>& pwm) const {
@@ -291,30 +320,26 @@ private:
 			; //TODO: handle error
 	}
 
-	void SetTurret() {
-		static int pos_h = 0;
-		static int pos_v = 0;
-
+	void SetTurret(float posV, float posH, bool cannonOn) {
 		mc_control_cmd_t cmd;
 		cmd.m = 'm';
 		cmd.b = 'b';
 		cmd.code = MC_RC_CODE_SET_TURRET;
 
 		mc_control_turret_t *trt = (mc_control_turret_t*)&(cmd.payload);
-		trt->angle_v = pos_v % 180;
-		trt->angle_h = pos_h % 180;
+		trt->angle_v = posV;
+		trt->angle_h = posH;
+		trt->cannon = cannonOn;
 
 		if (write(uart, &cmd, sizeof(cmd)) != sizeof(cmd))
 			; //TODO: handle error
-
-		pos_h += 5;
-		pos_v += 5;
 	}
 
 	rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velSubscriber;
 	rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPublisher;
 	std::shared_ptr<tf2_ros::TransformBroadcaster> transformBroadcaster;
 	rclcpp::TimerBase::SharedPtr tmr;
+	rclcpp::Subscription<example_interfaces::msg::Float32MultiArray>::SharedPtr turretSubscriber;
 
 	int uart;
 
@@ -323,6 +348,10 @@ private:
 
 	double setLinear;
 	double setAngular;
+
+	float setV;
+	float setH;
+	bool cannonOn;
 
 	double x;
 	double y;
