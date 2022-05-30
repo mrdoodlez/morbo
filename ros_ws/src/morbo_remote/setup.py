@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "morbo_remote = morbo_remote.morbo_remote:main"
+            "morbo_remote = morbo_remote.morbo_remote:main",
+            "morbo_remote_tcp = morbo_remote.morbo_remote_tcp:main"
         ],
     },
 )
