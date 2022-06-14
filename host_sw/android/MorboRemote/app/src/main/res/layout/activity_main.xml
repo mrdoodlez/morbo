@@ -6,13 +6,129 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <TableLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        tools:layout_editor_absoluteX="1dp"
+        tools:layout_editor_absoluteY="1dp">
+
+        <TableRow
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+
+            <TableLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                tools:layout_editor_absoluteX="1dp"
+                tools:layout_editor_absoluteY="1dp">
+
+                <TableRow
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickLinearPlus"
+                        android:text="Linear +"
+                        android:id="@+id/linp"
+                        android:layout_column="2" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickVerticalPlus"
+                        android:text="Vertical +"
+                        android:id="@+id/verp"
+                        android:layout_column="5" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickAngularMinus"
+                        android:text="Angular -"
+                        android:id="@+id/anm"
+                        android:layout_column="1" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickStop"
+                        android:text="Stop"
+                        android:id="@+id/stop"
+                        android:layout_column="2" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickAngularPlus"
+                        android:text="Angular +"
+                        android:id="@+id/anp"
+                        android:layout_column="3" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickHorizontalMinus"
+                        android:text="Horizontal -"
+                        android:id="@+id/hzm"
+                        android:layout_column="4" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickLazer"
+                        android:text="Lazer"
+                        android:id="@+id/lazer"
+                        android:layout_column="5" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickHorizontalPlus"
+                        android:text="Horizontal +"
+                        android:id="@+id/hzp"
+                        android:layout_column="4" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickLinearMinus"
+                        android:text="Linear -"
+                        android:id="@+id/linm"
+                        android:layout_column="2" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickVerticalMinus"
+                        android:text="Vertical -"
+                        android:id="@+id/verm"
+                        android:layout_column="5" />
+                </TableRow>
+
+            </TableLayout>
+        </TableRow>
+
+        <TableRow
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+            <TextView
+                android:text="status"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:id="@+id/statusText" />
+        </TableRow>
+    </TableLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
