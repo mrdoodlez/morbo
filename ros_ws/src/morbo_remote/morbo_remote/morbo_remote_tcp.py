@@ -56,7 +56,7 @@ def main():
     set_laser = 0.0
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('localhost', 10000)
+    server_address = ('', 10000)
     sock.bind(server_address)
 
     print("Waiting for TCP connection .....")
