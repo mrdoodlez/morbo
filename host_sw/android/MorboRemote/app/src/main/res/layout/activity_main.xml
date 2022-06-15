@@ -93,7 +93,7 @@
                         android:onClick="onClickHorizontalPlus"
                         android:text="Horizontal +"
                         android:id="@+id/hzp"
-                        android:layout_column="4" />
+                        android:layout_column="6" />
                 </TableRow>
 
                 <TableRow
@@ -124,11 +124,23 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent">
             <TextView
-                android:text="status"
                 android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:id="@+id/statusText" />
+                android:layout_height="wrap_content"
+                android:id="@+id/statusText"
+                android:lines="8"
+                android:scrollbars="vertical" />
         </TableRow>
+
+        <TableRow
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quite"
+                android:id="@+id/quite" />
+        </TableRow>
+
     </TableLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
