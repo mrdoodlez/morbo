@@ -44,6 +44,12 @@ def generate_launch_description():
         condition=launch.conditions.UnlessCondition(LaunchConfiguration('gui'))
     )
 
+    morbo_remote_tcp_node = launch_ros.actions.Node(
+        package='morbo_remote',
+        executable='morbo_remote_tcp',
+        name='morbo_remote_tcp',
+    )
+
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(name='gui', default_value='True',
             description='Flag to enable joint_state_publisher_gui'),
@@ -53,4 +59,5 @@ def generate_launch_description():
         joint_state_publisher_node,
         robot_state_publisher_node,
         rplidar_node,
+        morbo_remote_tcp_node,
     ])
