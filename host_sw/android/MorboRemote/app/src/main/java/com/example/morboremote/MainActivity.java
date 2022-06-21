@@ -9,11 +9,13 @@ import android.view.View;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
 public class MainActivity extends AppCompatActivity {
@@ -28,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
         eCmdHp,
         eCmdHm,
         eCmdStop,
+        eCmdLz,
         eCmdQuite
     };
 
@@ -69,8 +72,6 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             }
-
-
         } catch (SocketException e) {
             Log.i("T", "SocketException");
         }
@@ -80,44 +81,67 @@ public class MainActivity extends AppCompatActivity {
         if (!(ip.isEmpty())) {
             String[] addrs = ip.split("\\.");
             int myaddr = Integer.parseInt(addrs[3]);
-            for (int a = 75; a < 0xff; a++) {
+            boolean roverDetected = false;
+            for (int a = 75; a < 0xff && !roverDetected; a++) {
                 if (a == myaddr)
                     continue;
                 addrs[3] = String.valueOf(a);
                 String connectAddr = addrs[0] + "." + addrs[1] + "." + addrs[2] + "." + addrs[3];
-                updateStatusOnUi("Probe: " + connectAddr + " ...\n");
                 try {
+                    updateStatusOnUi("Probe: " + connectAddr + " ...\n");
                     Socket socket = new Socket(connectAddr, port);
-                    updateStatusOnUi("Success!\n");
+                    roverDetected = true;
+                    updateStatusOnUi("Rover detected\n");
+                    OutputStream output = socket.getOutputStream();
 
                     while(true) {
-                        switch (getNewCmd()) {
+                        byte[] data = "mbx".getBytes(StandardCharsets.US_ASCII);
+                        MorboCommand cmd = getNewCmd();
+                        switch (cmd) {
                             case eCmdLinP:
+                                data[2] = 119;
                                 break;
                             case eCmdLinM:
+                                data[2] = 120;
                                 break;
                             case eCmdAnP:
+                                data[2] = 97;
                                 break;
                             case eCmdAnM:
+                                data[2] = 100;
                                 break;
                             case eCmdVp:
+                                data[2] = 117;
                                 break;
                             case eCmdVm:
+                                data[2] = 110;
                                 break;
                             case eCmdHp:
+                                data[2] = 104;
                                 break;
                             case eCmdHm:
+                                data[2] = 107;
                                 break;
                             case eCmdStop:
+                                data[2] = 115;
                                 break;
-                            case eCmdQuite:
+                            case eCmdLz:
+                                data[2] = 106;
                                 break;
-                            case eCmdNone:
                             default:
-                                Thread.sleep(20);
                                 break;
                         }
+                        if (cmd != MorboCommand.eCmdNone) {
+                            setNewCmd(MorboCommand.eCmdNone);
+                            output.write(data, 0, 3);
+                            if (cmd == MorboCommand.eCmdQuite)
+                                break;
+                        } else {
+                            Thread.sleep(20);
+                        }
                     }
+                    updateStatusOnUi("Quite\n");
+                    socket.close();
                 } catch (UnknownHostException ex) {
                     Log.i("T", "Not found");
                 } catch (IOException e) {
@@ -132,6 +156,11 @@ public class MainActivity extends AppCompatActivity {
     private MorboCommand getNewCmd() {
         // TODO: provide lock here
         return lastCommand;
+    }
+
+    private void setNewCmd(MorboCommand cmd) {
+        // TODO: provide lock here
+        lastCommand = cmd;
     }
 
     private void updateStatusOnUi(String newStatus) {
@@ -151,42 +180,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickLinearPlus(View view) {
-        updateStatus("L+\n");
+        setNewCmd(MorboCommand.eCmdLinP);
     }
 
     public void onClickLinearMinus(View view) {
-        updateStatus("L-\n");
+        setNewCmd(MorboCommand.eCmdLinM);
     }
 
     public void onClickAngularPlus(View view) {
-        updateStatus("A+\n");
+        setNewCmd(MorboCommand.eCmdAnP);
     }
 
     public void onClickAngularMinus(View view) {
-        updateStatus("A-\n");
+        setNewCmd(MorboCommand.eCmdAnM);
     }
 
     public void onClickVerticalPlus(View view) {
-        updateStatus("V+\n");
+        setNewCmd(MorboCommand.eCmdVp);
     }
 
     public void onClickVerticalMinus(View view) {
-        updateStatus("V-\n");
+        setNewCmd(MorboCommand.eCmdVm);
     }
 
     public void onClickHorizontalPlus(View view) {
-        updateStatus("H+\n");
+        setNewCmd(MorboCommand.eCmdHp);
     }
 
     public void onClickHorizontalMinus(View view) {
-        updateStatus("H-\n");
+        setNewCmd(MorboCommand.eCmdHm);
     }
 
     public void onClickStop(View view) {
-        updateStatus("S\n");
+        setNewCmd(MorboCommand.eCmdStop);
     }
 
     public void onClickLazer(View view) {
-        updateStatus("L\n");
+        setNewCmd(MorboCommand.eCmdLz);
+    }
+
+    public void onClickQuite(View view) {
+        setNewCmd(MorboCommand.eCmdQuite);
     }
 }
