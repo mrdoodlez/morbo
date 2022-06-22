@@ -10,11 +10,11 @@ from geometry_msgs.msg import Twist
 from example_interfaces.msg import Float32MultiArray
 from rclpy.qos import QoSProfile
 
-LIN_STEP = 0.01
+LIN_STEP = 0.02
 AN_STEP = 0.1
 
-VER_STEP = 10
-HOR_STEP = 10
+VER_STEP = 20
+HOR_STEP = 20
 
 def get_cmd(connection):
     data = connection.recv(3)
