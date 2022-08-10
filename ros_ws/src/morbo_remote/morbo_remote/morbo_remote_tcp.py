@@ -40,114 +40,116 @@ def main():
     vel_publisher = node.create_publisher(Twist, 'cmd_vel', qos)
     turret_publisher = node.create_publisher(Float32MultiArray, "turret_pos", qos)
 
-    set_linear = 0.0
-    set_angular = 0.0
+    while True:
 
-    curr_linear = -1
-    curr_angular = -1
+        set_linear = 0.0
+        set_angular = 0.0
 
-    set_ver = 90.0
-    set_hor = 90.0
+        curr_linear = -1
+        curr_angular = -1
 
-    curr_ver = 0.0
-    curr_hor = 0.0
+        set_ver = 90.0
+        set_hor = 90.0
 
-    curr_laser = 0.0
-    set_laser = 0.0
+        curr_ver = 0.0
+        curr_hor = 0.0
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('', 10000)
-    sock.bind(server_address)
+        curr_laser = 0.0
+        set_laser = 0.0
 
-    print("Waiting for TCP connection .....")
-    sock.listen(1)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = ('', 10000)
+        sock.bind(server_address)
 
-    connection, client_address = sock.accept()
-    print("accect connection from: ", client_address)
+        print("Waiting for TCP connection .....")
+        sock.listen(1)
 
-    try:
-        while True:
-            cmd = get_cmd(connection)
-            if cmd == 119:
-                set_linear += LIN_STEP
-            elif cmd == 120:
-                set_linear -= LIN_STEP
-            elif cmd == 97:
-                set_angular += AN_STEP
-            elif cmd == 100:
-                set_angular -= AN_STEP
-            elif cmd == 32 or cmd == 115:
-                set_linear = 0.0
-                set_angular = 0.0
-            elif cmd == 104:
-                set_hor += HOR_STEP
-            elif cmd == 107:
-                set_hor -= HOR_STEP
-            elif cmd == 117:
-                set_ver += VER_STEP
-            elif cmd == 110:
-                set_ver -= VER_STEP
-            elif cmd == 106:
-                set_laser = 1.0 - set_laser
-            else:
-                if (cmd == '\x03'):
-                    break
+        connection, client_address = sock.accept()
+        print("accect connection from: ", client_address)
 
-            if (set_linear != curr_linear) or (set_angular != curr_angular):
-                print("linear: {0} angular: {1}".format(set_linear, set_angular))
+        try:
+            while True:
+                cmd = get_cmd(connection)
+                if cmd == 119:
+                    set_linear += LIN_STEP
+                elif cmd == 120:
+                    set_linear -= LIN_STEP
+                elif cmd == 97:
+                    set_angular += AN_STEP
+                elif cmd == 100:
+                    set_angular -= AN_STEP
+                elif cmd == 32 or cmd == 115:
+                    set_linear = 0.0
+                    set_angular = 0.0
+                elif cmd == 104:
+                    set_hor += HOR_STEP
+                elif cmd == 107:
+                    set_hor -= HOR_STEP
+                elif cmd == 117:
+                    set_ver += VER_STEP
+                elif cmd == 110:
+                    set_ver -= VER_STEP
+                elif cmd == 106:
+                    set_laser = 1.0 - set_laser
+                else:
+                    if (cmd == '\x03'):
+                        break
 
-                twist = Twist()
+                if (set_linear != curr_linear) or (set_angular != curr_angular):
+                    print("linear: {0} angular: {1}".format(set_linear, set_angular))
 
-                twist.linear.x = set_linear
-                twist.linear.y = 0.0
-                twist.linear.z = 0.0
+                    twist = Twist()
 
-                twist.angular.x = 0.0
-                twist.angular.y = 0.0
-                twist.angular.z = set_angular
+                    twist.linear.x = set_linear
+                    twist.linear.y = 0.0
+                    twist.linear.z = 0.0
 
-                vel_publisher.publish(twist)
+                    twist.angular.x = 0.0
+                    twist.angular.y = 0.0
+                    twist.angular.z = set_angular
 
-                curr_linear = set_linear
-                curr_angular = set_angular
+                    vel_publisher.publish(twist)
 
-            set_ver = check_limits(set_ver)
-            set_hor = check_limits(set_hor)
+                    curr_linear = set_linear
+                    curr_angular = set_angular
 
-            if (set_ver != curr_ver) or (set_hor != curr_hor) or (set_laser != curr_laser):
-                print("ver: {0} hor: {1} laser: {2}".format(set_ver, set_hor, set_laser))
+                set_ver = check_limits(set_ver)
+                set_hor = check_limits(set_hor)
 
-                msg = Float32MultiArray()
-                msg.data = [set_hor, set_ver, set_laser]
+                if (set_ver != curr_ver) or (set_hor != curr_hor) or (set_laser != curr_laser):
+                    print("ver: {0} hor: {1} laser: {2}".format(set_ver, set_hor, set_laser))
 
-                turret_publisher.publish(msg)
+                    msg = Float32MultiArray()
+                    msg.data = [set_hor, set_ver, set_laser]
 
-                curr_ver = set_ver
-                curr_hor = set_hor
-                curr_laser = set_laser
+                    turret_publisher.publish(msg)
 
-    except Exception as e:
-        print(e)
+                    curr_ver = set_ver
+                    curr_hor = set_hor
+                    curr_laser = set_laser
 
-    finally:
-        twist = Twist()
-        twist.linear.x = 0.0
-        twist.linear.y = 0.0
-        twist.linear.z = 0.0
+        except Exception as e:
+            print(e)
 
-        twist.angular.x = 0.0
-        twist.angular.y = 0.0
-        twist.angular.z = 0.0
+        finally:
+            twist = Twist()
+            twist.linear.x = 0.0
+            twist.linear.y = 0.0
+            twist.linear.z = 0.0
 
-        vel_publisher.publish(twist)
+            twist.angular.x = 0.0
+            twist.angular.y = 0.0
+            twist.angular.z = 0.0
 
-        msg = Float32MultiArray()
-        msg.data = [90.0, 90.0, 0.0]
+            vel_publisher.publish(twist)
 
-        turret_publisher.publish(msg)
+            msg = Float32MultiArray()
+            msg.data = [90.0, 90.0, 0.0]
 
-        connection.close()
-        sock.close()
+            turret_publisher.publish(msg)
+
+            connection.close()
+            sock.close()
 
 if __name__ == '__main__':
     main()
